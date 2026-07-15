@@ -60,7 +60,7 @@ export default async function Home() {
   const dashboard = await getStudentDashboard(user.id);
   const continueLesson = dashboard.continueLesson;
   const continueHref = continueLesson
-    ? lessonHref(continueLesson.slug, continueLesson.progress.lastBlock?.id)
+    ? lessonHref(continueLesson.slug, continueLesson.progress.resumeBlock?.id)
     : "/lessons";
   const latestAchievement = dashboard.achievements[0];
   const latestTest = dashboard.latestTestAttempt;
@@ -73,10 +73,10 @@ export default async function Home() {
             <div className="flex flex-wrap gap-2">
               <Chip variant="soft" color="success">
                 {dashboard.completedCoreCount} из {dashboard.coreLessons.length} основных уроков
-              </Chip>
-              <Chip variant="soft" color="accent">
-                Сервер сохраняет место остановки
-              </Chip>
+                </Chip>
+                <Chip variant="soft" color="accent">
+                  Продолжение по готовности блоков
+                </Chip>
             </div>
             <h1 className="mt-5 max-w-4xl text-4xl font-bold tracking-normal text-black sm:text-5xl">
               Главная панель обучения

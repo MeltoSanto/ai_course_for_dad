@@ -8,6 +8,7 @@ import {
   TimelineRail,
   type TimelineStep,
 } from "@/components/cockpit-ui";
+import { QaResetProgressButton } from "@/app/progress/qa-reset-progress-button";
 import {
   getStudentProgressCenter,
   kindLabels,
@@ -95,6 +96,19 @@ export default async function ProgressPage() {
                   <Button variant="primary">Продолжить обучение</Button>
                 </Link>
               </div>
+              {user.username === "qa" ? (
+                <div className="mt-5 max-w-xl rounded-xl border border-red-200 bg-red-50/80 p-4">
+                  <p className="text-xs font-bold uppercase tracking-normal text-red-700">
+                    QA-режим
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-red-900">
+                    Сброс возвращает тестового ученика в стартовую точку:
+                    удаляет отмеченные блоки, практику, попытки тестов и ачивки
+                    только для пользователя `qa`.
+                  </p>
+                  <QaResetProgressButton />
+                </div>
+              ) : null}
             </div>
             <ProgressDonut value={progress.coursePercent} />
           </div>

@@ -24,6 +24,20 @@ type StoredAnswer = {
   maxPoints: number;
 };
 
+export type SubmitTestState = {
+  status: "idle" | "error" | "success";
+  message?: string;
+  missingQuestionIds?: string[];
+  attempt?: {
+    score: number;
+    maxScore: number;
+    passingScore: number;
+    isPassed: boolean;
+    createdAt: string;
+    answers: StoredAnswer[];
+  };
+};
+
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
@@ -55,6 +69,53 @@ function sameSet(left: string[], right: string[]) {
   return (
     first.length === second.length &&
     first.every((value, index) => value === second[index])
+  );
+}
+
+function normalizeStep(value: string) {
+  return normalize(value.replace(/^\s*\d+[.)]\s+/, ""));
+}
+
+function parseStepOrder(value: string | null | undefined) {
+  const source = String(value ?? "").trim();
+
+  if (!source) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(source) as unknown;
+
+    if (Array.isArray(parsed)) {
+      return parsed.map(String).map((item) => item.trim()).filter(Boolean);
+    }
+  } catch {
+    // Plain newline text is also accepted.
+  }
+
+  return source
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/^\s*\d+[.)]\s+/, "").trim())
+    .filter(Boolean);
+}
+
+function sameStepOrder(answer: string, correctOrder: string | null) {
+  const answerSteps = parseStepOrder(answer);
+  const correctSteps = parseStepOrder(correctOrder);
+
+  if (
+    answerSteps.length === 0 ||
+    correctSteps.length === 0 ||
+    answerSteps.length !== correctSteps.length
+  ) {
+    return false;
+  }
+
+  return answerSteps.every(
+    (step, index) => normalizeStep(step) === normalizeStep(correctSteps[index]),
   );
 }
 
@@ -148,6 +209,8 @@ export async function submitAssignmentAction(
 
   revalidatePath("/");
   revalidatePath("/progress");
+  revalidatePath("/tests");
+  revalidatePath("/achievements");
   revalidatePath(`/lessons/${slug}`);
 }
 
@@ -155,8 +218,9 @@ export async function submitTestAction(
   lessonId: string,
   testId: string,
   slug: string,
+  _state: SubmitTestState,
   formData: FormData,
-) {
+): Promise<SubmitTestState> {
   const user = await requireUser();
   const test = await db.lessonTest.findFirst({
     where: {
@@ -183,10 +247,14 @@ export async function submitTestAction(
   });
 
   if (!test) {
-    return;
+    return {
+      status: "error",
+      message: "Тест не найден или больше недоступен.",
+    };
   }
 
   let score = 0;
+  const missingQuestionIds: string[] = [];
   const maxScore = test.questions.reduce(
     (sum, question) => sum + question.points,
     0,
@@ -211,16 +279,29 @@ export async function submitTestAction(
 
       answer = selectedOptionIds;
       correctAnswer = correctOptionIds;
-      isCorrect = sameSet(selectedOptionIds, correctOptionIds);
+
+      if (selectedOptionIds.length === 0) {
+        missingQuestionIds.push(question.id);
+      }
+
+      isCorrect =
+        selectedOptionIds.length > 0 &&
+        correctOptionIds.length > 0 &&
+        sameSet(selectedOptionIds, correctOptionIds);
     }
 
     if (question.type === QuestionType.SORT_STEPS) {
       const userAnswer = text(formData, `question_${question.id}`);
+      const correctSteps = parseStepOrder(question.correctOrder);
+
       answer = userAnswer;
-      correctAnswer = question.correctOrder ?? "";
-      isCorrect =
-        normalize(userAnswer) !== "" &&
-        normalize(userAnswer) === normalize(question.correctOrder);
+      correctAnswer = correctSteps;
+
+      if (normalize(userAnswer) === "") {
+        missingQuestionIds.push(question.id);
+      }
+
+      isCorrect = sameStepOrder(userAnswer, question.correctOrder);
     }
 
     if (
@@ -230,6 +311,11 @@ export async function submitTestAction(
       const userAnswer = text(formData, `question_${question.id}`);
       answer = userAnswer;
       correctAnswer = question.correctText ?? "";
+
+      if (normalize(userAnswer) === "") {
+        missingQuestionIds.push(question.id);
+      }
+
       isCorrect = textMatches({
         answer: userAnswer,
         correctText: question.correctText,
@@ -251,9 +337,20 @@ export async function submitTestAction(
     };
   });
 
+  if (missingQuestionIds.length > 0) {
+    return {
+      status: "error",
+      message:
+        missingQuestionIds.length === test.questions.length
+          ? "Тест пока пустой. Ответьте на вопросы перед завершением."
+          : "Заполните все вопросы перед завершением теста.",
+      missingQuestionIds,
+    };
+  }
+
   const isPassed = maxScore > 0 && score >= test.passingScore;
 
-  await db.userTestAttempt.create({
+  const attempt = await db.userTestAttempt.create({
     data: {
       userId: user.id,
       testId,
@@ -276,4 +373,19 @@ export async function submitTestAction(
   revalidatePath("/");
   revalidatePath("/progress");
   revalidatePath(`/lessons/${slug}`);
+
+  return {
+    status: "success",
+    message: isPassed
+      ? "Тест пройден. Зачёт сохранён."
+      : "Пока не пройдено. Можно исправить ответы и попробовать ещё раз.",
+    attempt: {
+      score,
+      maxScore,
+      passingScore: test.passingScore,
+      isPassed,
+      createdAt: attempt.createdAt.toISOString(),
+      answers,
+    },
+  };
 }

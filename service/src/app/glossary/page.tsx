@@ -2,6 +2,7 @@ import { Chip } from "@heroui/react";
 import { PublicationStatus } from "@prisma/client";
 import { BookMarked, Hash, Tags } from "lucide-react";
 import { CockpitShell } from "@/components/cockpit-shell";
+import { MarkdownContent } from "@/components/markdown-content";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 
@@ -60,7 +61,13 @@ export default async function GlossaryPage() {
               </div>
               <div className="text-sm leading-7 text-[#383f3b]">
                 <p>{term.definition}</p>
-                {term.contentMd ? <p className="mt-3">{term.contentMd}</p> : null}
+                {term.contentMd ? (
+                  <MarkdownContent
+                    className="mt-3"
+                    compact
+                    content={term.contentMd}
+                  />
+                ) : null}
               </div>
             </article>
           ))}

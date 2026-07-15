@@ -2,6 +2,7 @@ import { Chip } from "@heroui/react";
 import { PublicationStatus } from "@prisma/client";
 import { BookOpen, FolderOpen, Library } from "lucide-react";
 import { CockpitShell } from "@/components/cockpit-shell";
+import { MarkdownContent } from "@/components/markdown-content";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 
@@ -90,9 +91,7 @@ export default async function ReferencePage() {
                           </span>
                           <h3 className="text-lg font-bold">{item.title}</h3>
                         </div>
-                        <p className="whitespace-pre-line text-sm leading-7 text-[#383f3b]">
-                          {item.contentMd}
-                        </p>
+                        <MarkdownContent compact content={item.contentMd} />
                       </article>
                     ))}
                   </div>

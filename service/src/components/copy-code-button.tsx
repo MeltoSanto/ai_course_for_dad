@@ -3,7 +3,11 @@
 import { useCopyText } from "@/hooks/use-copy-text";
 import { Check, Copy } from "lucide-react";
 
-export function CopyPromptButton({ content }: { content: string }) {
+type CopyCodeButtonProps = {
+  content: string;
+};
+
+export function CopyCodeButton({ content }: CopyCodeButtonProps) {
   const {
     copied,
     copyFromClick,
@@ -23,13 +27,13 @@ export function CopyPromptButton({ content }: { content: string }) {
               ? "Не удалось скопировать промпт"
               : "Скопировать промпт"
         }
-        className="copy-inline-button"
+        className="markdown-code-copy"
         type="button"
         onClick={copyFromClick}
         onKeyDown={copyFromKeyboard}
         onPointerDown={copyFromPointer}
       >
-        {copied ? <Check size={15} /> : <Copy size={15} />}
+        {copied ? <Check size={14} /> : <Copy size={14} />}
         {copied ? "Скопировано" : failed ? "Не скопировано" : "Копировать"}
       </button>
       <span
@@ -39,7 +43,7 @@ export function CopyPromptButton({ content }: { content: string }) {
         }`}
         role="status"
       >
-        {copied ? "Скопировано в буфер" : failed ? "Копирование заблокировано" : ""}
+        {copied ? "В буфере" : failed ? "Браузер заблокировал" : ""}
       </span>
     </span>
   );

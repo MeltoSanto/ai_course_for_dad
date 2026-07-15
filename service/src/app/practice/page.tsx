@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CockpitShell } from "@/components/cockpit-shell";
 import { formatFullDate } from "@/components/course/course-utils";
 import { MetricCard } from "@/components/course/metric-card";
+import { markdownToPlainText } from "@/components/markdown-content";
 import { getStudentDashboard, getStudentPracticeCenter } from "@/lib/course";
 import { requireUser } from "@/lib/session";
 
@@ -118,7 +119,7 @@ export default async function PracticePage() {
                   {assignment.lesson.title}
                 </p>
                 <p className="mt-3 line-clamp-4 text-sm leading-6 text-[var(--muted)]">
-                  {assignment.instructionsMd}
+                  {markdownToPlainText(assignment.instructionsMd)}
                 </p>
                 <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--line)] pt-3 text-sm">
                   <span className="text-[var(--muted)]">

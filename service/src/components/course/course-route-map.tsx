@@ -9,7 +9,7 @@ export type RouteMapLesson = {
   durationMinutes: number | null;
   progress: {
     percent: number;
-    lastBlock?: {
+    resumeBlock?: {
       id: string;
     } | null;
   };
@@ -27,7 +27,7 @@ export function CourseRouteMap({
   title?: string;
 }) {
   const steps: TimelineStep[] = lessons.map((lesson) => ({
-    href: lessonHref(lesson.slug, lesson.progress.lastBlock?.id),
+    href: lessonHref(lesson.slug, lesson.progress.resumeBlock?.id),
     id: lesson.id,
     label: lesson.title,
     meta: `${lesson.progress.percent}%`,

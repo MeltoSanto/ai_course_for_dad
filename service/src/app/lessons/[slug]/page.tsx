@@ -3,32 +3,24 @@ import {
   AssignmentStatus,
   LessonBlockType,
   ProgressStatus,
-  QuestionType,
 } from "@prisma/client";
 import {
-  Check,
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
   Clock3,
-  Flag,
   ListChecks,
-  Save,
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  submitAssignmentAction,
-  submitTestAction,
-} from "@/app/actions/learning";
-import {
-  completeBlockAction,
-  saveLessonPlaceAction,
-} from "@/app/actions/progress";
+import { submitAssignmentAction } from "@/app/actions/learning";
+import { CompleteBlockButton } from "@/app/lessons/[slug]/complete-block-button";
 import { LessonModeTabs } from "@/app/lessons/[slug]/lesson-mode-tabs";
 import { CopyPromptButton } from "@/app/lessons/[slug]/copy-prompt-button";
+import { TestForm } from "@/app/lessons/[slug]/test-form";
 import { CockpitShell } from "@/components/cockpit-shell";
 import { TimelineRail, type TimelineStep } from "@/components/cockpit-ui";
+import { MarkdownContent } from "@/components/markdown-content";
 import {
   getLessonWorkspace,
   kindLabels,
@@ -56,61 +48,15 @@ const assignmentStatusLabels: Record<AssignmentStatus, string> = {
   COMPLETED: "Выполнено",
 };
 
-const questionTypeLabels: Record<QuestionType, string> = {
-  SINGLE_CHOICE: "Один правильный ответ",
-  MULTIPLE_CHOICE: "Несколько правильных ответов",
-  SORT_STEPS: "Сортировка шагов",
-  FIND_PROMPT_ERROR: "Найти ошибку в промпте",
-  FILL_BLANK: "Вставить правильное слово",
-};
-
 const inputClass =
   "mt-2 w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none transition focus:border-[var(--signal-green)] focus:ring-2 focus:ring-emerald-100";
 const textareaClass = `${inputClass} min-h-28 resize-y leading-6`;
-
-type StoredAnswer = {
-  questionId: string;
-  answer: string | string[];
-  correctAnswer: string | string[];
-  isCorrect: boolean;
-  pointsAwarded: number;
-  maxPoints: number;
-};
 
 type LessonPageProps = {
   params: Promise<{
     slug: string;
   }>;
 };
-
-function parseStoredAnswers(answers: string | null | undefined) {
-  if (!answers) {
-    return new Map<string, StoredAnswer>();
-  }
-
-  try {
-    const parsed = JSON.parse(answers) as StoredAnswer[];
-    return new Map(parsed.map((answer) => [answer.questionId, answer]));
-  } catch {
-    return new Map<string, StoredAnswer>();
-  }
-}
-
-function storedAnswerText(answer: StoredAnswer | undefined) {
-  if (!answer) {
-    return "";
-  }
-
-  return Array.isArray(answer.answer) ? answer.answer.join("\n") : answer.answer;
-}
-
-function storedAnswerValues(answer: StoredAnswer | undefined) {
-  if (!answer || !Array.isArray(answer.answer)) {
-    return new Set<string>();
-  }
-
-  return new Set(answer.answer);
-}
 
 export default async function LessonPage({ params }: LessonPageProps) {
   const { slug } = await params;
@@ -124,23 +70,23 @@ export default async function LessonPage({ params }: LessonPageProps) {
   const { lesson, progress, completedBlockIds, previousLesson, nextLesson } =
     workspace;
   const percent = progress?.percent ?? 0;
-  const firstIncompleteBlock =
-    lesson.blocks.find((block) => !completedBlockIds.has(block.id)) ??
-    lesson.blocks[0];
-  const continueBlock = progress?.lastBlock ?? firstIncompleteBlock;
+  const firstIncompleteBlock = lesson.blocks.find(
+    (block) => !completedBlockIds.has(block.id),
+  );
+  const continueBlock = firstIncompleteBlock ?? null;
   const continueHref = continueBlock
     ? `/lessons/${lesson.slug}#block-${continueBlock.id}`
-    : `/lessons/${lesson.slug}`;
+    : `/lessons/${lesson.slug}#practice`;
   const blockSteps: TimelineStep[] = lesson.blocks.slice(0, 8).map((block) => ({
     href: `#block-${block.id}`,
     id: block.id,
     label: block.title,
     meta: blockTypeLabels[block.type],
     state:
-      block.id === continueBlock?.id
-        ? "active"
-        : completedBlockIds.has(block.id)
-          ? "done"
+      completedBlockIds.has(block.id)
+        ? "done"
+        : block.id === continueBlock?.id
+          ? "active"
           : "todo",
   }));
 
@@ -226,7 +172,19 @@ export default async function LessonPage({ params }: LessonPageProps) {
                     </Button>
                   </a>
                 </div>
-              ) : null}
+              ) : (
+                <div className="mt-4 rounded-xl border border-[var(--line)] bg-white/82 p-4">
+                  <p className="text-xs font-semibold uppercase text-[var(--muted)]">
+                    Материал
+                  </p>
+                  <p className="mt-2 font-bold">Все блоки отмечены готовыми</p>
+                  <a className="mt-4 block" href="#practice">
+                    <Button fullWidth variant="primary">
+                      Перейти к практике
+                    </Button>
+                  </a>
+                </div>
+              )}
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {previousLesson ? (
                   <Link href={`/lessons/${previousLesson.slug}`}>
@@ -309,7 +267,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
             <div>
               <h2 className="text-2xl font-bold">Материал урока</h2>
               <p className="text-sm text-[var(--muted)]">
-                Читайте по блокам, сохраняйте место и отмечайте готовность.
+                Читайте по блокам и отмечайте готовность после изучения.
               </p>
             </div>
             <Chip variant="soft" color="accent">
@@ -319,8 +277,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
 
           {lesson.blocks.map((block, index) => {
             const isCompleted = completedBlockIds.has(block.id);
-            const previousBlock = lesson.blocks[index - 1];
-            const nextBlock = lesson.blocks[index + 1];
+            const isLastBlock = index === lesson.blocks.length - 1;
 
             return (
               <article
@@ -350,75 +307,38 @@ export default async function LessonPage({ params }: LessonPageProps) {
                 </div>
 
                 <div
-                  className={`mt-4 whitespace-pre-line p-4 text-sm leading-7 text-[#383f3b] ${
+                  className={`mt-4 p-4 ${
                     block.type === LessonBlockType.PROMPTS
-                      ? "prompt-console font-mono"
+                      ? "prompt-console"
                       : "cockpit-muted-panel"
                   }`}
                 >
-                  {block.contentMd}
+                  <MarkdownContent
+                    content={block.contentMd}
+                    tone={
+                      block.type === LessonBlockType.PROMPTS
+                        ? "prompt"
+                        : "default"
+                    }
+                  />
                 </div>
 
-                <div className="mt-5 flex flex-col gap-3 border-t border-[var(--line)] pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mt-5 flex flex-col gap-3 border-t border-[var(--line)] pt-4 sm:flex-row sm:items-center sm:justify-end">
                   <div className="flex flex-wrap gap-2">
-                    {previousBlock ? (
-                      <a href={`#block-${previousBlock.id}`}>
-                        <Button variant="outline">
-                          <ChevronLeft size={16} />
-                          Предыдущий блок
-                        </Button>
-                      </a>
-                    ) : previousLesson ? (
-                      <Link href={`/lessons/${previousLesson.slug}`}>
-                        <Button variant="outline">
-                          <ChevronLeft size={16} />
-                          Предыдущий урок
-                        </Button>
-                      </Link>
-                    ) : null}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <form
-                      action={saveLessonPlaceAction.bind(
-                        null,
-                        lesson.id,
-                        block.id,
-                        lesson.slug,
-                      )}
-                    >
-                      <Button type="submit" variant="outline">
-                        <Save size={16} />
-                        Сохранить место
-                      </Button>
-                    </form>
-                    <form
-                      action={completeBlockAction.bind(
-                        null,
-                        lesson.id,
-                        block.id,
-                        lesson.slug,
-                      )}
-                    >
-                      <Button type="submit" variant="primary">
-                        <Check size={16} />
-                        Готово
-                      </Button>
-                    </form>
-                    {nextBlock ? (
-                      <a href={`#block-${nextBlock.id}`}>
-                        <Button variant="secondary">
-                          Следующий блок
-                          <ChevronRight size={16} />
-                        </Button>
-                      </a>
-                    ) : (
+                    <CompleteBlockButton
+                      blockId={block.id}
+                      isCompleted={isCompleted}
+                      lessonId={lesson.id}
+                      slug={lesson.slug}
+                    />
+                    {isLastBlock ? (
                       <a href="#practice">
                         <Button variant="secondary">
                           К практике
                           <ChevronRight size={16} />
                         </Button>
                       </a>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </article>
@@ -476,14 +396,17 @@ export default async function LessonPage({ params }: LessonPageProps) {
                 <div className="mt-4 grid gap-4 text-sm leading-7 text-[#383f3b] lg:grid-cols-[1fr_420px]">
                   <div>
                     <div className="cockpit-muted-panel p-4">
-                      {assignment.instructionsMd}
+                      <MarkdownContent content={assignment.instructionsMd} />
                     </div>
                     {assignment.expectedProcessMd ? (
                       <div className="cockpit-muted-panel mt-3 p-4">
                         <p className="mb-1 font-bold text-[var(--foreground)]">
                           Ожидаемый процесс
                         </p>
-                        {assignment.expectedProcessMd}
+                        <MarkdownContent
+                          compact
+                          content={assignment.expectedProcessMd}
+                        />
                       </div>
                     ) : null}
                     {assignment.checklistMd ? (
@@ -491,7 +414,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
                         <p className="mb-1 font-bold text-[var(--foreground)]">
                           Чек-лист
                         </p>
-                        {assignment.checklistMd}
+                        <MarkdownContent compact content={assignment.checklistMd} />
                       </div>
                     ) : null}
                   </div>
@@ -552,7 +475,11 @@ export default async function LessonPage({ params }: LessonPageProps) {
 
           {lesson.tests.map((test) => {
             const latestAttempt = test.attempts[0];
-            const answerMap = parseStoredAnswers(latestAttempt?.answers);
+            const maxScore = test.questions.reduce(
+              (sum, question) => sum + question.points,
+              0,
+            );
+            const hasPassed = test.attempts.some((attempt) => attempt.isPassed);
 
             return (
               <article className="cockpit-panel p-5" key={test.id}>
@@ -563,6 +490,9 @@ export default async function LessonPage({ params }: LessonPageProps) {
                   </Chip>
                   <Chip variant="soft" color="default">
                     Проходной балл: {test.passingScore}
+                  </Chip>
+                  <Chip variant="soft" color={hasPassed ? "success" : "default"}>
+                    {hasPassed ? "Зачёт получен" : "Зачёта пока нет"}
                   </Chip>
                   {latestAttempt ? (
                     <Chip
@@ -593,130 +523,42 @@ export default async function LessonPage({ params }: LessonPageProps) {
                   </div>
                 ) : null}
 
-                <form
-                  action={submitTestAction.bind(
-                    null,
-                    lesson.id,
-                    test.id,
-                    lesson.slug,
-                  )}
-                  className="mt-4 flex flex-col gap-4"
-                >
-                  {test.questions.map((question) => {
-                    const storedAnswer = answerMap.get(question.id);
-                    const selectedValues = storedAnswerValues(storedAnswer);
-
-                    return (
-                      <fieldset
-                        className="rounded-xl border border-[var(--line)] bg-white/86 p-4"
-                        key={question.id}
-                      >
-                        <div className="flex flex-wrap gap-2">
-                          <Chip variant="soft" color="accent">
-                            {questionTypeLabels[question.type]}
-                          </Chip>
-                          <Chip variant="soft" color="default">
-                            {question.points} балл
-                          </Chip>
-                          {storedAnswer ? (
-                            <Chip
-                              variant="soft"
-                              color={storedAnswer.isCorrect ? "success" : "danger"}
-                            >
-                              {storedAnswer.pointsAwarded}/{storedAnswer.maxPoints}
-                            </Chip>
-                          ) : null}
-                        </div>
-                        <legend className="mt-3 font-bold">
-                          {question.prompt}
-                        </legend>
-
-                        {question.type === QuestionType.SINGLE_CHOICE ? (
-                          <div className="mt-3 flex flex-col gap-2">
-                            {question.options.map((option) => (
-                              <label
-                                className="flex items-start gap-2 rounded-lg bg-[var(--surface-muted)] px-3 py-2 text-sm"
-                                key={option.id}
-                              >
-                                <input
-                                  defaultChecked={selectedValues.has(option.id)}
-                                  name={`question_${question.id}`}
-                                  type="radio"
-                                  value={option.id}
-                                />
-                                <span>{option.text}</span>
-                              </label>
-                            ))}
-                          </div>
-                        ) : null}
-
-                        {question.type === QuestionType.MULTIPLE_CHOICE ? (
-                          <div className="mt-3 flex flex-col gap-2">
-                            {question.options.map((option) => (
-                              <label
-                                className="flex items-start gap-2 rounded-lg bg-[var(--surface-muted)] px-3 py-2 text-sm"
-                                key={option.id}
-                              >
-                                <input
-                                  defaultChecked={selectedValues.has(option.id)}
-                                  name={`question_${question.id}`}
-                                  type="checkbox"
-                                  value={option.id}
-                                />
-                                <span>{option.text}</span>
-                              </label>
-                            ))}
-                          </div>
-                        ) : null}
-
-                        {question.type === QuestionType.SORT_STEPS ? (
-                          <label className="mt-3 block text-sm font-semibold">
-                            Ответ по строкам в правильном порядке
-                            <textarea
-                              className={textareaClass}
-                              defaultValue={storedAnswerText(storedAnswer)}
-                              name={`question_${question.id}`}
-                            />
-                          </label>
-                        ) : null}
-
-                        {question.type === QuestionType.FIND_PROMPT_ERROR ? (
-                          <label className="mt-3 block text-sm font-semibold">
-                            Найденная ошибка и исправление
-                            <textarea
-                              className={textareaClass}
-                              defaultValue={storedAnswerText(storedAnswer)}
-                              name={`question_${question.id}`}
-                            />
-                          </label>
-                        ) : null}
-
-                        {question.type === QuestionType.FILL_BLANK ? (
-                          <label className="mt-3 block text-sm font-semibold">
-                            Ответ
-                            <input
-                              className={inputClass}
-                              defaultValue={storedAnswerText(storedAnswer)}
-                              name={`question_${question.id}`}
-                            />
-                          </label>
-                        ) : null}
-
-                        {storedAnswer && !storedAnswer.isCorrect ? (
-                          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-                            Ответ сохранён, но не совпал с эталоном. Проверьте
-                            формулировку и попробуйте ещё раз.
-                          </p>
-                        ) : null}
-                      </fieldset>
-                    );
-                  })}
-
-                  <Button type="submit" variant="primary">
-                    <Flag size={16} />
-                    Завершить тест
-                  </Button>
-                </form>
+                <TestForm
+                  hasPassed={hasPassed}
+                  latestAttempt={
+                    latestAttempt
+                      ? {
+                          score: latestAttempt.score,
+                          maxScore: latestAttempt.maxScore,
+                          isPassed: latestAttempt.isPassed,
+                          createdAt: latestAttempt.createdAt.toISOString(),
+                          answers: latestAttempt.answers ?? "[]",
+                        }
+                      : null
+                  }
+                  lessonId={lesson.id}
+                  lessonSlug={lesson.slug}
+                  test={{
+                    id: test.id,
+                    title: test.title,
+                    passingScore: test.passingScore,
+                    maxScore,
+                    questions: test.questions.map((question) => ({
+                      id: question.id,
+                      type: question.type,
+                      prompt: question.prompt,
+                      explanation: question.explanation,
+                      points: question.points,
+                      correctText: question.correctText,
+                      correctOrder: question.correctOrder,
+                      options: question.options.map((option) => ({
+                        id: option.id,
+                        text: option.text,
+                        isCorrect: option.isCorrect,
+                      })),
+                    })),
+                  }}
+                />
               </article>
             );
           })}

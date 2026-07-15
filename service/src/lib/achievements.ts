@@ -162,6 +162,12 @@ export async function awardTestAchievements(userId: string, lessonId: string) {
 
   await awardAchievementByCode(userId, "first-test");
 
+  const lessonCode = lessonAchievements[lesson.slug];
+
+  if (lessonCode) {
+    await awardAchievementByCode(userId, lessonCode);
+  }
+
   const code = testAchievements[lesson.slug];
 
   if (code) {

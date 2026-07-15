@@ -20,7 +20,7 @@ export type LessonCardLesson = {
   progress: {
     status: ProgressStatus;
     percent: number;
-    lastBlock?: {
+    resumeBlock?: {
       id: string;
       title: string;
     } | null;
@@ -31,7 +31,7 @@ export function LessonCard({ lesson }: { lesson: LessonCardLesson }) {
   return (
     <Link
       className="group rounded-xl border border-[var(--line)] bg-white/82 p-4 transition hover:-translate-y-0.5 hover:border-[var(--signal-green)] hover:shadow-[0_16px_36px_rgba(28,35,29,0.08)]"
-      href={lessonHref(lesson.slug, lesson.progress.lastBlock?.id)}
+      href={lessonHref(lesson.slug, lesson.progress.resumeBlock?.id)}
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="grid size-14 place-items-center rounded-xl bg-[var(--sidebar)] text-base font-bold text-white">

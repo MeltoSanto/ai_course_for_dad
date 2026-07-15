@@ -1,5 +1,5 @@
-export function lessonHref(slug: string, lastBlockId?: string | null) {
-  return `/lessons/${slug}${lastBlockId ? `#block-${lastBlockId}` : ""}`;
+export function lessonHref(slug: string, resumeBlockId?: string | null) {
+  return `/lessons/${slug}${resumeBlockId ? `#block-${resumeBlockId}` : ""}`;
 }
 
 export function progressTone(percent: number) {

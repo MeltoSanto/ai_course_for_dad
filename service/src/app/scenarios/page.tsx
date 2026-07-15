@@ -2,6 +2,7 @@ import { Chip } from "@heroui/react";
 import { PublicationStatus } from "@prisma/client";
 import { ClipboardList, Code2, Workflow } from "lucide-react";
 import { CockpitShell } from "@/components/cockpit-shell";
+import { MarkdownContent } from "@/components/markdown-content";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 
@@ -63,7 +64,7 @@ export default async function ScenariosPage() {
                   <Code2 size={16} />
                   Шаблон
                 </div>
-                <p className="whitespace-pre-line">{scenario.contentMd}</p>
+                <MarkdownContent compact content={scenario.contentMd} tone="prompt" />
               </div>
             </article>
           ))}

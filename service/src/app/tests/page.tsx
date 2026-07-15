@@ -53,8 +53,8 @@ export default async function TestsPage() {
             />
             <MetricCard
               icon={CheckCircle2}
-              label="Пройдено"
-              meta="Есть успешная последняя попытка"
+              label="Зачтено"
+              meta="Хотя бы одна успешная попытка"
               tone="slate"
               value={testCenter.totals.passed}
             />
@@ -77,23 +77,24 @@ export default async function TestsPage() {
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {testCenter.tests.map((test) => {
                 const latestAttempt = test.latestAttempt;
+                const bestAttempt = test.bestAttempt;
 
                 return (
                   <Link
-                    className="group rounded-xl border border-[var(--line)] bg-white/82 p-4 transition hover:-translate-y-0.5 hover:border-[var(--signal-green)] hover:shadow-[0_16px_36px_rgba(28,35,29,0.08)]"
+                    className="group rounded-xl border border-[var(--line)] bg-white/82 p-4 transition hover:-translate-y-0.5 hover:border-[var(--signal-green)] hover:shadow-[0_16px_36px_rgba(28,35,29,0.08)] focus-visible:border-[var(--signal-green)] focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-emerald-200"
                     href={`/lessons/${test.lesson.slug}#tests`}
                     key={test.id}
                   >
                     <div className="mb-3 flex flex-wrap gap-2">
                       <Chip
                         variant="soft"
-                        color={latestAttempt?.isPassed ? "success" : "default"}
+                        color={test.hasPassed ? "success" : "default"}
                       >
-                        {latestAttempt
-                          ? latestAttempt.isPassed
-                            ? "Пройден"
-                            : "Повторить"
-                          : "Не начат"}
+                        {test.hasPassed
+                          ? "Зачтён"
+                          : latestAttempt
+                            ? "Повторить"
+                            : "Не начат"}
                       </Chip>
                       <Chip variant="soft" color="default">
                         {test.questionCount} вопросов
@@ -121,12 +122,23 @@ export default async function TestsPage() {
                             : "Пока нет"}
                         </strong>
                       </div>
+                      <div className="mt-2 flex justify-between gap-3">
+                        <span className="text-[var(--muted)]">Лучший результат</span>
+                        <strong>
+                          {bestAttempt
+                            ? `${testPercent(bestAttempt.score, bestAttempt.maxScore)}%`
+                            : "Пока нет"}
+                        </strong>
+                      </div>
                     </div>
-                    <div className="mt-4 flex justify-end">
-                      <ChevronRight
-                        className="text-[var(--muted)] transition group-hover:translate-x-1 group-hover:text-[var(--signal-green)]"
-                        size={18}
-                      />
+                    <div className="mt-4 flex justify-end text-sm font-bold text-[var(--signal-green)]">
+                      <span className="inline-flex items-center gap-1">
+                        {latestAttempt ? "Открыть / повторить" : "Начать"}
+                        <ChevronRight
+                          className="transition group-hover:translate-x-1"
+                          size={18}
+                        />
+                      </span>
                     </div>
                   </Link>
                 );
@@ -140,7 +152,7 @@ export default async function TestsPage() {
               {testCenter.recentAttempts.length > 0 ? (
                 testCenter.recentAttempts.map((attempt) => (
                   <Link
-                    className="rounded-xl border border-[var(--line)] bg-white/82 p-3 transition hover:border-[var(--signal-green)]"
+                    className="rounded-xl border border-[var(--line)] bg-white/82 p-3 transition hover:border-[var(--signal-green)] focus-visible:border-[var(--signal-green)] focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-emerald-200"
                     href={`/lessons/${attempt.test.lesson.slug}#tests`}
                     key={attempt.id}
                   >

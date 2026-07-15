@@ -57,8 +57,21 @@ export async function getStudentDashboard(userId: string) {
             where: {
               isPublished: true,
             },
+            orderBy: {
+              order: "asc",
+            },
             select: {
               id: true,
+              title: true,
+              blockProgresses: {
+                where: {
+                  userId,
+                },
+                select: {
+                  completedAt: true,
+                },
+                take: 1,
+              },
             },
           },
           assignments: {
@@ -154,6 +167,10 @@ export async function getStudentDashboard(userId: string) {
 
   const dashboardLessons = lessons.map((lesson) => {
     const progress = lesson.progresses[0];
+    const resumeBlock =
+      lesson.blocks.find(
+        (block) => !block.blockProgresses.some((item) => item.completedAt),
+      ) ?? null;
 
     return {
       id: lesson.id,
@@ -173,6 +190,12 @@ export async function getStudentDashboard(userId: string) {
         percent: progress?.percent ?? 0,
         lastVisitedAt: progress?.lastVisitedAt,
         lastBlock: progress?.lastBlock,
+        resumeBlock: resumeBlock
+          ? {
+              id: resumeBlock.id,
+              title: resumeBlock.title,
+            }
+          : null,
       },
     };
   });
@@ -269,7 +292,7 @@ export async function getLessonWorkspace(userId: string, slug: string) {
             orderBy: {
               createdAt: "desc",
             },
-            take: 1,
+            take: 8,
           },
         },
       },
@@ -777,7 +800,7 @@ export async function getStudentTestCenter(userId: string) {
           orderBy: {
             createdAt: "desc",
           },
-          take: 1,
+          take: 8,
         },
       },
       orderBy: {
@@ -819,6 +842,18 @@ export async function getStudentTestCenter(userId: string) {
         (sum, question) => sum + question.points,
         0,
       );
+      const latestAttempt = test.attempts[0];
+      const bestAttempt =
+        test.attempts.length > 0
+          ? [...test.attempts].sort(
+              (left, right) =>
+                right.score / Math.max(1, right.maxScore) -
+                  left.score / Math.max(1, left.maxScore) ||
+                right.score - left.score ||
+                Number(right.createdAt) - Number(left.createdAt),
+            )[0]
+          : null;
+      const hasPassed = test.attempts.some((attempt) => attempt.isPassed);
 
       return {
         id: test.id,
@@ -830,7 +865,9 @@ export async function getStudentTestCenter(userId: string) {
         lesson: test.lesson,
         questionCount: test.questions.length,
         maxScore,
-        latestAttempt: test.attempts[0],
+        latestAttempt,
+        bestAttempt,
+        hasPassed,
       };
     });
 
@@ -840,7 +877,7 @@ export async function getStudentTestCenter(userId: string) {
     totals: {
       total: testItems.length,
       attempted: testItems.filter((test) => test.latestAttempt).length,
-      passed: testItems.filter((test) => test.latestAttempt?.isPassed).length,
+      passed: testItems.filter((test) => test.hasPassed).length,
       questionCount: testItems.reduce((sum, test) => sum + test.questionCount, 0),
       maxScore: testItems.reduce((sum, test) => sum + test.maxScore, 0),
     },

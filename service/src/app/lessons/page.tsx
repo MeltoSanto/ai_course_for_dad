@@ -13,7 +13,7 @@ export default async function LessonsPage() {
   const dashboard = await getStudentDashboard(user.id);
   const continueLesson = dashboard.continueLesson;
   const continueHref = continueLesson
-    ? lessonHref(continueLesson.slug, continueLesson.progress.lastBlock?.id)
+    ? lessonHref(continueLesson.slug, continueLesson.progress.resumeBlock?.id)
     : "/lessons";
 
   return (
@@ -35,7 +35,7 @@ export default async function LessonsPage() {
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-6 text-[var(--muted)]">
                 Здесь ученик выбирает конкретный урок. Нажатие по плитке открывает
-                урок целиком: материалы, практику, проверку и навигацию по блокам.
+                урок целиком: материалы, практику и проверку.
               </p>
             </div>
             {continueLesson ? (

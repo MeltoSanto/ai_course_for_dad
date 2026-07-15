@@ -1,1032 +1,129 @@
-# CODEX_CONTEXT.md
+# CODEX_CONTEXT
 
-Дата актуализации: 14 июля 2026
+Актуально на 2026-07-15. Этот файл нужен, чтобы быстро продолжить проект с другого компьютера или в новом чате Codex без повторного восстановления контекста.
 
-Этот файл нужен, чтобы можно было открыть проект в новом Codex-чате или на домашнем компьютере и быстро продолжить без восстановления всей истории переписки.
+## 1. Что это за проект
 
-Главная инструкция для следующего Codex: сначала прочитать этот файл целиком, затем проверить `git status`, `service/package.json`, `service/prisma/schema.prisma` и только после этого вносить изменения.
+Проект: персональный веб-сервис обучения работе с ИИ для папы.
 
-## 1. Суть проекта
+Идея: не лендинг и не набор статей, а личный учебный cockpit, где ученик проходит уроки, практику, тесты, видит прогресс, получает ачивки и возвращается к справочнику/глоссарию/сценариям.
 
-Проект: персональный учебный веб-сервис по работе с ИИ для отца пользователя.
+Курс не учит юридической экспертизе. Юридические документы используются как тренировочный материал для работы с ИИ: обезличивание, постановка задачи, декомпозиция, цитатный контроль, проверка выводов, длинный контекст, роли и личная система сценариев.
 
-Это подарок. Поэтому нельзя заранее проводить прямую диагностику ученика или делать действия, которые могут раскрыть сюрприз. Вместо предварительной диагностики использовать мягкую калибровку внутри первого урока на вымышленном материале.
+Важная граница: юрисдикцию РБ из основной программы убрали. В основной программе остаётся РФ как проверяемый контур. Все юридически значимые выводы должны быть помечены как требующие проверки квалифицированным юристом.
 
-Курс должен быть не про юридическое обучение как таковое, а про практическое управление ИИ на знакомом рабочем материале:
+## 2. Репозиторий и ветка
 
-- как правильно ставить задачу ИИ;
-- как ограничивать контекст;
-- как обезличивать данные;
-- как проверять ответы;
-- как работать с длинными документами;
-- как отделять факты, выводы и предположения;
-- как собирать личную библиотеку рабочих сценариев;
-- как использовать разные модели ИИ осознанно.
+Рабочая папка:
 
-Юридические документы, аренда, ПВЗ, претензии и договоры - это тренировочный материал, а не цель курса.
-
-## 2. Профиль ученика
-
-Ученик:
-
-- взрослый человек, около 54 лет;
-- работает с юридическими и организационными задачами в сфере аренды и эксплуатации ПВЗ;
-- основная юрисдикция: РФ;
-- РБ временно исключена из основной версии курса до отдельной проверки применимости материалов;
-- уже несколько месяцев базово пользуется ИИ;
-- использует бесплатные ChatGPT, DeepSeek и Qwen;
-- работает с договорами, допсоглашениями, претензиями, деловой перепиской, таблицами;
-- целевой UX должен быть понятен человеку 50+.
-
-UX-следствия:
-
-- не делать интерфейс мелким и перегруженным;
-- важные действия должны быть очевидны;
-- прогресс и следующий шаг должны быть видны сразу;
-- кликабельные зоны должны быть крупными;
-- не использовать иконки без подсказок там, где смысл не очевиден;
-- формулировки должны быть спокойными, прикладными и без ощущения экзамена.
-
-## 3. Принятые продуктовые решения
-
-Решено:
-
-- делать свой веб-сервис, не Stepik;
-- использовать HeroUI для интерфейса;
-- хранить прогресс на сервере, не в `localStorage`;
-- использовать простую авторизацию логин/пароль;
-- роли: `STUDENT` и `ADMIN`;
-- база: SQLite через Prisma;
-- нужна админка для наполнения и редактирования курса;
-- деплой планируется на VPS с доменом;
-- Vercel обсуждали, но текущий основной путь - VPS;
-- стиль UI: технологичный cockpit-style, вдохновлённый выбранным mockup `Student Learning Cockpit`.
-
-Важно: пользователь просил не плодить лишние markdown-аудиты и документы, если информацию можно коротко дать в чате. Исключение - этот `CODEX_CONTEXT.md`, потому что он нужен для продолжения работы с другого места.
-
-## 4. GitHub и текущее состояние репозитория
-
-Репозиторий:
-
-- `https://github.com/MeltoSanto/ai_course_for_dad.git`
-- ветка: `main`
-
-Основной коммит сервиса перед актуализацией этого файла:
-
-- `e1b9a94 Add AI course service MVP`
-
-Перед этим коммитом были зелёные проверки:
-
-- `npm run lint`
-- `npm run build`
-- `git diff --cached --check`
-
-После изменения этого файла нужно сделать отдельный commit/push, чтобы дома был актуальный контекст.
-
-## 5. Структура репозитория
-
-Корень проекта:
-
-- `CODEX_CONTEXT.md` - этот файл, стартовый контекст для Codex.
-- `lesson-1-data-safety.md` - первый контент-пакет урока.
-- `docs/` - исследовательские и плановые материалы.
-- `service/` - рабочий Next.js веб-сервис.
-- `.codex-audit-admin-qa7/` - скриншоты последнего QA админки и UI.
-- `.gitignore` - корневой ignore для `.appdata/` и `.npm-cache/`.
-
-Внутри `service/`:
-
-- `package.json` - команды и зависимости.
-- `.env.example` - пример env.
-- `.gitignore` - защита от `node_modules`, `.next`, `.env`, SQLite DB и build artifacts.
-- `README.md` - инструкция по локальному запуску и VPS.
-- `prisma/schema.prisma` - схема базы.
-- `prisma/seed.mjs` - стартовые данные.
-- `prisma/migrations/20260714000100_init/migration.sql` - первая миграция.
-- `scripts/import-lesson-package.mjs` - импорт Markdown-пакета урока.
-- `scripts/reset-qa-user.mjs` - сброс QA-пользователя.
-- `src/app/` - Next.js App Router страницы и server actions.
-- `src/components/` - общие UI-компоненты.
-- `src/lib/` - работа с DB, курсом, прогрессом, сессиями, ачивками.
-
-## 6. Технологический стек
-
-Сервис:
-
-- Next.js 16.2.10
-- React 19.2.4
-- TypeScript
-- HeroUI 3.2.2
-- Prisma 6.19.3
-- SQLite
-- Server Actions
-- cookie-based session auth
-- lucide-react icons
-- npm
-
-Важные ограничения:
-
-- не использовать внешнюю сеть без необходимости;
-- не коммитить `.env`;
-- не коммитить SQLite базы;
-- не коммитить `node_modules`;
-- не коммитить `.next`;
-- перед push запускать `npm run lint` и `npm run build`.
-
-## 7. Как поднять проект на новом компьютере
-
-Вариант для Windows PowerShell:
-
-```powershell
-git clone https://github.com/MeltoSanto/ai_course_for_dad.git
-cd ai_course_for_dad\service
-npm install
-Copy-Item .env.example .env
-npm run db:deploy
-npm run db:seed
-npm run content:import -- ..\lesson-1-data-safety.md
-npm run qa:reset
-npm run dev -- -H 127.0.0.1
+```text
+C:\Users\user\YandexDisk\!STARLINE\!РАБОТА\ai_course_for_dad
 ```
 
-Вариант для bash:
+Git:
+
+```text
+branch: main
+remote: origin https://github.com/MeltoSanto/ai_course_for_dad.git
+```
+
+Основные папки:
+
+```text
+docs/                         исследовательские материалы и программа
+service/                      Next.js веб-сервис
+service/prisma/               Prisma schema, миграции, seed
+service/scripts/              импорт контент-пакетов и reset QA
+service/src/app/              App Router страницы и server actions
+service/src/components/       общие UI-компоненты
+service/src/lib/              DB/session/course/progress/achievements helpers
+lesson-research-prompts/      промпты для подготовки контент-пакетов уроков 4-8
+```
+
+Корневые контент-пакеты:
+
+```text
+lesson-1-data-safety.md
+lesson-2-context-engineering.md
+lesson-3-task-decomposition.md
+```
+
+## 3. Технологический стек
+
+Сервис находится в `service/`.
+
+Стек:
+
+- Next.js `16.2.10` App Router;
+- React `19.2.4`;
+- TypeScript;
+- Prisma `6.19.3`;
+- SQLite;
+- HeroUI `@heroui/react`;
+- Tailwind CSS v4 через `@tailwindcss/postcss`;
+- lucide-react для иконок;
+- framer-motion подключён как зависимость.
+
+Скрипты из `service/package.json`:
 
 ```bash
-git clone https://github.com/MeltoSanto/ai_course_for_dad.git
-cd ai_course_for_dad/service
+npm run dev            # локальный dev server
+npm run build          # production build
+npm run start          # next start -H 0.0.0.0
+npm run lint           # eslint
+npm run db:generate    # prisma generate
+npm run db:migrate     # prisma migrate dev
+npm run db:deploy      # prisma migrate deploy
+npm run db:seed        # node prisma/seed.mjs
+npm run content:import # node scripts/import-lesson-package.mjs
+npm run qa:reset       # node scripts/reset-qa-user.mjs
+npm run db:studio      # prisma studio
+npm run prod:setup     # migrate deploy + seed + build
+```
+
+## 4. Локальный запуск
+
+Из папки `service/`:
+
+```bash
 npm install
 cp .env.example .env
 npm run db:deploy
 npm run db:seed
-npm run content:import -- ../lesson-1-data-safety.md
-npm run qa:reset
-npm run dev -- -H 127.0.0.1
+npm run dev
 ```
 
 Локальный адрес:
 
-- `http://127.0.0.1:3000`
+```text
+http://127.0.0.1:3000
+```
 
-Важно: у текущей версии Next для host используется `-H`, а не `--host`. Команда `npm run dev -- --host 127.0.0.1` падает с ошибкой `unknown option '--host'`.
-
-## 8. Env и SQLite
-
-Файл `service/.env` не коммитится.
-
-Для локальной разработки можно использовать:
+Если порт занят:
 
 ```bash
-DATABASE_URL="file:./dev.db"
-AUTH_SECRET="dev-ai-course-secret-change-before-production"
-SEED_STUDENT_PASSWORD="1234"
-SEED_QA_PASSWORD="1234"
-SEED_ADMIN_PASSWORD="1234"
-QA_USERNAME="qa"
-QA_PASSWORD="1234"
+npm run dev -- -H 127.0.0.1 -p 3001
 ```
 
-Пояснение по SQLite:
+## 5. Production / VPS
 
-- `DATABASE_URL="file:./dev.db"` создаёт SQLite базу как `service/prisma/dev.db`.
-- Эта база gitignored.
-- В production по README используется `DATABASE_URL="file:../data/prod.db"`, то есть `service/data/prod.db`.
-- `service/data/.gitkeep` закоммичен, сама база `prod.db` не коммитится.
-
-Если дома после `Copy-Item .env.example .env` база создастся в `service/data/prod.db`, это тоже технически нормально, но для локальной разработки удобнее `file:./dev.db`.
-
-## 9. Логины
-
-После `npm run db:seed`:
-
-- student: `roman` / `1234`
-- QA student: `qa` / `1234`
-- admin: `nikita` / `1234`
-
-Особенности:
-
-- `db:seed` создаёт пользователей, если их нет.
-- `db:seed` не перезаписывает пароль уже существующих `roman` и `nikita`.
-- `qa:reset` всегда создаёт или обновляет пользователя `qa`, выставляет ему пароль из `QA_PASSWORD` или `1234` и очищает только его прогресс.
-- Для QA и автотестов использовать `qa`, чтобы не портить прогресс `roman`.
-
-## 10. npm scripts
-
-Все команды выполнять из `service/`.
-
-```bash
-npm run dev
-npm run build
-npm run start
-npm run lint
-npm run db:generate
-npm run db:migrate
-npm run db:deploy
-npm run db:seed
-npm run content:import
-npm run qa:reset
-npm run db:studio
-npm run prod:setup
-```
-
-Что делают:
-
-- `dev` - запускает Next dev server.
-- `build` - production build.
-- `start` - `next start -H 0.0.0.0`.
-- `lint` - ESLint.
-- `db:generate` - Prisma Client generate.
-- `db:migrate` - Prisma migrate dev.
-- `db:deploy` - применить миграции.
-- `db:seed` - стартовые пользователи, уроки-заглушки, библиотека, ачивки.
-- `content:import` - импорт Markdown-пакета урока в SQLite.
-- `qa:reset` - сброс прогресса QA-пользователя.
-- `db:studio` - Prisma Studio.
-- `prod:setup` - `prisma migrate deploy && npm run db:seed && npm run build`.
-
-Для первого урока:
-
-```bash
-npm run content:import -- ..\lesson-1-data-safety.md
-```
-
-## 11. Реализованные страницы
-
-Публично-ученические:
-
-- `/` - главная cockpit-панель.
-- `/lessons` - плитки уроков.
-- `/lessons/[slug]` - страница конкретного урока.
-- `/practice` - список практик.
-- `/tests` - список тестов.
-- `/progress` - экран прогресса и истории.
-- `/achievements` - ачивки.
-- `/reference` - справочник.
-- `/glossary` - глоссарий.
-- `/scenarios` - сценарии.
-- `/login` - вход.
-
-Админские:
-
-- `/admin` - обзор админки.
-- `/admin/lessons/[lessonId]` - редактирование урока, блоков, практики, тестов и вопросов.
-- `/admin/library` - справочник, глоссарий, сценарии, управление ачивками.
-
-API:
-
-- `/api/health` - проверка сервиса и базы.
-
-## 12. Основные файлы приложения
-
-Auth/session:
-
-- `service/src/app/login/page.tsx`
-- `service/src/app/login/login-form.tsx`
-- `service/src/app/actions/auth.ts`
-- `service/src/lib/session.ts`
-- `service/src/lib/password.ts`
-
-Data/course/progress:
-
-- `service/src/lib/db.ts`
-- `service/src/lib/course.ts`
-- `service/src/lib/progress.ts`
-- `service/src/lib/achievements.ts`
-
-Student UI:
-
-- `service/src/components/cockpit-shell.tsx`
-- `service/src/components/cockpit-ui.tsx`
-- `service/src/components/course/lesson-card.tsx`
-- `service/src/components/course/course-route-map.tsx`
-- `service/src/components/course/achievement-card.tsx`
-- `service/src/components/course/metric-card.tsx`
-- `service/src/app/page.tsx`
-- `service/src/app/lessons/page.tsx`
-- `service/src/app/lessons/[slug]/page.tsx`
-
-Lesson interactions:
-
-- `service/src/app/actions/progress.ts` - отметка блоков/посещений.
-- `service/src/app/actions/learning.ts` - отправка практики и тестов.
-- `service/src/app/lessons/[slug]/copy-prompt-button.tsx` - копирование промптов.
-- `service/src/app/lessons/[slug]/lesson-mode-tabs.tsx` - вкладки/режимы урока.
-
-Admin:
-
-- `service/src/app/admin/page.tsx`
-- `service/src/app/admin/actions.ts`
-- `service/src/app/admin/lessons/[lessonId]/page.tsx`
-- `service/src/app/admin/library/page.tsx`
-
-Reference pages:
-
-- `service/src/app/reference/page.tsx`
-- `service/src/app/glossary/page.tsx`
-- `service/src/app/scenarios/page.tsx`
-
-## 13. Prisma schema
-
-Файл: `service/prisma/schema.prisma`.
-
-Enums:
-
-- `UserRole`: `STUDENT`, `ADMIN`
-- `PublicationStatus`: `DRAFT`, `PUBLISHED`, `ARCHIVED`
-- `LessonKind`: `CORE`, `EXTRA`
-- `LessonBlockType`: `OBJECTIVE`, `EXPLANATION`, `DEMONSTRATION`, `PRACTICE`, `PROMPTS`, `CHECK`, `ARTIFACT`, `MARKDOWN`, `CALLOUT`
-- `ProgressStatus`: `NOT_STARTED`, `IN_PROGRESS`, `COMPLETED`
-- `AssignmentStatus`: `NOT_STARTED`, `IN_PROGRESS`, `SUBMITTED`, `COMPLETED`
-- `QuestionType`: `SINGLE_CHOICE`, `MULTIPLE_CHOICE`, `SORT_STEPS`, `FIND_PROMPT_ERROR`, `FILL_BLANK`
-- `AchievementTriggerType`: `LESSON_COMPLETED`, `PRACTICE_COMPLETED`, `TEST_PASSED`, `SCENARIO_SAVED`, `MANUAL`
-
-Models:
-
-- `User`
-- `Lesson`
-- `LessonBlock`
-- `Assignment`
-- `LessonTest`
-- `Question`
-- `QuestionOption`
-- `UserLessonProgress`
-- `UserBlockProgress`
-- `UserAssignmentProgress`
-- `UserTestAttempt`
-- `Achievement`
-- `UserAchievement`
-- `Scenario`
-- `GlossaryTerm`
-- `ReferenceItem`
-
-Особенности модели:
-
-- `Lesson.slug` уникален.
-- `QuestionOption` связан с `Question`.
-- `UserLessonProgress` уникален по `userId + lessonId`.
-- `UserBlockProgress` уникален по `userId + blockId`.
-- `UserAssignmentProgress` уникален по `userId + assignmentId`.
-- `UserTestAttempt` хранит каждую попытку теста, включая `answers` JSON.
-- `UserAchievement` уникален по `userId + achievementId`.
-
-## 14. Как сейчас считается прогресс
-
-Файл: `service/src/lib/progress.ts`.
-
-Текущее правило:
-
-- total units = опубликованные блоки + неархивные практики + неархивные тесты;
-- completed units = завершённые блоки + completed assignments + passed test ids.
-
-Важный известный нюанс:
-
-- В прогрессе тест считается пройденным, если когда-либо был passed.
-- На странице `/tests` может использоваться логика последней попытки.
-- Это входит в план исправления `Единый контракт прогресса` и `Тесты`.
-
-Нужно будет решить:
-
-- `ever passed` или `latest attempt passed`;
-- что считается завершением урока;
-- как показывать отдельные слои: блоки, практика, тест.
-
-## 15. Как сейчас работают тесты
-
-Файл: `service/src/app/actions/learning.ts`.
-
-Поддерживаемые типы:
-
-- `SINGLE_CHOICE` - radio, один правильный ответ.
-- `MULTIPLE_CHOICE` - checkbox, несколько правильных.
-- `SORT_STEPS` - textarea, сравнение с `correctOrder`.
-- `FIND_PROMPT_ERROR` - textarea, accepted substrings из `correctText`, разделитель `|`.
-- `FILL_BLANK` - input, exact accepted variants из `correctText`, разделитель `|`.
-
-Известные задачи:
-
-- запретить отправку пустого теста;
-- привести статистику pass -> fail к единому правилу;
-- добавить smoke-тесты на все 5 типов;
-- проверить понятность формата сортировки шагов для ученика 50+.
-
-## 16. Как сейчас работает практика
-
-Файл: `service/src/app/actions/learning.ts`.
-
-Практика:
-
-- пользователь вводит ответ;
-- может отметить `isCompleted`;
-- если `isCompleted`, статус становится `COMPLETED`;
-- иначе `SUBMITTED`;
-- ответ хранится в `UserAssignmentProgress.submissionMd`;
-- после сохранения обновляется прогресс и проверяются ачивки.
-
-Известные задачи:
-
-- защитить введённый текст от потери при истёкшей сессии;
-- визуально различить `Сохранено` и `Выполнено`;
-- сделать UX спокойнее и понятнее.
-
-## 17. Ачивки
-
-Файл: `service/src/lib/achievements.ts`.
-
-Сейчас есть базовая механика:
-
-- ачивки сидятся через `service/prisma/seed.mjs`;
-- выдаются при прохождении уроков, практики, тестов и т.д.;
-- админка умеет управлять ачивками.
-
-Продуктовая позиция:
-
-- ачивки должны мотивировать;
-- не превращать курс в игру ради игры;
-- лучше награждать за полезные рабочие привычки:
-  - обезличивание;
-  - цитатный контроль;
-  - декомпозиция;
-  - работа с длинным документом;
-  - агентные роли;
-  - личная система.
-
-## 18. Первый урок и контент-пакет
-
-Файл:
-
-- `lesson-1-data-safety.md`
-
-Урок:
-
-- slug: `data-safety`
-- title: `Безопасная работа с документами во внешних ИИ-моделях`
-- subtitle: `Как поставить границы задачи, обезличить данные и проверить файл перед загрузкой`
-- durationMinutes: 45
-- mainSkill: подготовка минимального и обезличенного контекста для внешней ИИ-модели
-
-Структура импортированного пакета:
-
-- 8 блоков;
-- 1 практика;
-- 1 тест;
-- 8 вопросов;
-- max score: 10;
-- passingScore: 8;
-- 12 терминов глоссария;
-- 4 reference items;
-- 1 scenario.
-
-Блоки урока:
-
-1. `OBJECTIVE` - какой результат вы получите.
-2. `EXPLANATION` - четыре слоя чувствительных данных.
-3. `EXPLANATION` - метод `Сократить - заменить - проверить`.
-4. `DEMONSTRATION` - как превратить фрагмент договора в безопасный контекст.
-5. `PROMPTS` - готовые промпты для подготовки и проверки текста.
-6. `PRACTICE` - практика на учебном договоре.
-7. `CHECK` - проверка перед нажатием `Отправить`.
-8. `ARTIFACT` - что сохранить после урока.
-
-Команда импорта:
-
-```bash
-cd service
-npm run content:import -- ..\lesson-1-data-safety.md
-```
-
-Важно:
-
-- импортёр пересоздаёт блоки, практику и тест для урока с тем же slug;
-- это нормально на этапе наполнения;
-- это может сбросить прогресс по старым id блоков/практики/теста;
-- перед реальным использованием курса нужно аккуратно решить стратегию обновления контента без потери прогресса.
-
-## 19. Формат Markdown-пакета урока
-
-Текущий импортёр ожидает структуру как в `lesson-1-data-safety.md`.
-
-Основные секции:
-
-```md
-# lesson
-# blocks
-# assignment
-# test
-# glossary
-# referenceItems
-# scenario
-```
-
-`# lesson`:
-
-```md
-slug: data-safety
-title: ...
-subtitle: ...
-description: ...
-durationMinutes: 45
-mainSkill: ...
-```
-
-`# blocks`:
-
-```md
-## block 1
-type: OBJECTIVE
-title: ...
-content:
-...
-```
-
-`# assignment`:
-
-```md
-title: ...
-instructions:
-...
-expectedProcess:
-...
-checklist:
-- [ ] ...
-```
-
-`# test`:
-
-```md
-title: ...
-description: ...
-passingScore: 8
-
-## question 1
-type: SINGLE_CHOICE
-prompt: ...
-points: 1
-options:
-- [ ] ...
-- [x] ...
-explanation: ...
-```
-
-Для `MULTIPLE_CHOICE` можно ставить несколько `[x]`.
-
-Для `SORT_STEPS`:
-
-```md
-correctOrder:
-1. Первый шаг
-2. Второй шаг
-3. Третий шаг
-```
-
-Для `FIND_PROMPT_ERROR` и `FILL_BLANK`:
-
-```md
-correctText: вариант 1 | вариант 2 | вариант 3
-```
-
-`# glossary`:
-
-```md
-- term: Термин
-  definition: Краткое определение
-  content: Дополнительное пояснение
-```
-
-`# referenceItems`:
-
-```md
-- slug: pre-upload-checklist
-  title: ...
-  category: ...
-  content: |
-    ...
-```
-
-`# scenario`:
-
-```md
-slug: ...
-title: ...
-summary: ...
-content:
-...
-```
-
-## 20. Текущий рендер контента
-
-На странице урока `contentMd` сейчас в основном выводится как текст с сохранением переносов строк (`whitespace-pre-line`), не как полноценный Markdown.
-
-Следствие:
-
-- списки читаются, но не получают полноценный markdown-style;
-- таблицы, цитаты, жирный текст и code fences могут выглядеть слишком сыро;
-- `PROMPTS` блоки выделяются и имеют кнопку копирования.
-
-Будущее улучшение:
-
-- добавить безопасный Markdown renderer;
-- аккуратно стилизовать списки, цитаты, code blocks и таблицы;
-- отдельно проверить читаемость на мобильных и для ученика 50+.
-
-## 21. Админка
-
-Админ:
-
-- логин `nikita`;
-- пароль по умолчанию `1234`;
-- роль `ADMIN`.
-
-Что уже есть:
-
-- создание/редактирование уроков;
-- создание/редактирование блоков;
-- создание/редактирование практики;
-- создание/редактирование тестов;
-- создание/редактирование вопросов и вариантов;
-- управление справочником;
-- управление глоссарием;
-- управление сценариями;
-- управление ачивками.
-
-Известные UX-проблемы:
-
-- формы длинные;
-- слишком много одинаковых кнопок `Сохранить`;
-- нужны табы/секции;
-- нужно усилить контекст действий;
-- нужно добавить валидацию обязательных полей;
-- якоря должны учитывать sticky header.
-
-## 22. QA-пользователь и повторяемая тестовая база
-
-Пункт плана `Зафиксировать тестовую базу` выполнен.
-
-Что сделано:
-
-- в seed добавлен пользователь `qa`;
-- добавлен `service/scripts/reset-qa-user.mjs`;
-- добавлена команда `npm run qa:reset`;
-- `.env.example` и `README.md` обновлены.
-
-Команда:
-
-```bash
-cd service
-npm run qa:reset
-```
-
-Ожидаемый результат:
-
-- пользователь `qa` существует;
-- пароль соответствует `QA_PASSWORD` или `1234`;
-- прогресс QA очищен;
-- таблицы `UserLessonProgress`, `UserBlockProgress`, `UserAssignmentProgress`, `UserTestAttempt`, `UserAchievement` для `qa` пустые;
-- `roman` не затронут.
-
-Это позволяет гонять QA повторно и получать предсказуемые цифры.
-
-## 23. Последний большой QA и план исправлений
-
-Пользователь просил создать 10 агентов-тестировщиков и проверить функционал сайта:
-
-- кнопки;
-- поля ввода;
-- графики;
-- статистику;
-- чекпоинты;
-- удобство для человека 50+;
-- дополнительные критичные метрики.
-
-На основе анализа был составлен план. Пока исправлен только пункт 1.
-
-### 23.1 Зафиксировать тестовую базу
-
-Статус: выполнено.
-
-Критерий:
-
-- QA можно гонять повторно;
-- прогресс `roman` не портится.
-
-### 23.2 Починить responsive/mobile
-
-Статус: следующий пункт.
-
-Задачи:
-
-- убрать root-level горизонтальный overflow на 390px и 768px;
-- пересобрать grid/layout главной;
-- пересобрать layout урока;
-- пересобрать карту маршрута;
-- пересобрать topbar.
-
-Критерий:
-
-- `scrollWidth <= viewportWidth + 2px` на ключевых страницах.
-
-Ключевые страницы для проверки:
-
-- `/`
-- `/lessons`
-- `/lessons/data-safety`
-- `/progress`
-- `/admin`
-- `/admin/library`
-
-### 23.3 Разобраться с topbar-заглушками
-
-Статус: не сделано.
-
-Проблема:
-
-- поиск выглядит рабочим, но не помогает;
-- user menu/notifications/icon actions могут быть кликабельными без понятного результата.
-
-Нужно:
-
-- поиск либо реализовать, либо сделать disabled/убрать;
-- добавить tooltip или понятное поведение для icon-only кнопок;
-- не оставлять кликабельных элементов, которые ничего не делают.
-
-### 23.4 Единый контракт прогресса
-
-Статус: не сделано.
-
-Нужно решить:
-
-- урок завершён, когда закрыты блоки + практика + тест;
-- или каждый слой считается отдельно;
-- как считать `passed test`: ever passed или latest attempt.
-
-После решения привести к единой логике:
-
-- `/`
-- `/lessons`
-- `/progress`
-- `/tests`
-- `/achievements`
-
-Критерий:
-
-- одна активность даёт одинаковые цифры на всех экранах.
-
-### 23.5 Тесты
-
-Статус: не сделано.
-
-Нужно:
-
-- определить `latest passed` vs `ever passed`;
-- запретить отправку пустого теста;
-- добавить реальные seed-примеры всех 5 типов вопросов;
-- проверить pass -> fail сценарий;
-- проверить, что статистика не расходится.
-
-### 23.6 Практика и защита от потери текста
-
-Статус: не сделано.
-
-Нужно:
-
-- проверить session edge case;
-- при истёкшей сессии не терять введённый ответ;
-- сделать статусы `Сохранено` и `Выполнено` более различимыми.
-
-Критерий:
-
-- submit не уводит на login с потерей текста.
-
-### 23.7 Accessibility/keyboard
-
-Статус: не сделано.
-
-Нужно:
-
-- убрать `Link > Button`;
-- добавить понятные `aria-label` для таймлайна;
-- усилить focus states;
-- увеличить checkbox/radio/малые targets ближе к 44x44;
-- проверить tab path.
-
-Критерий:
-
-- интерактивные элементы имеют имена;
-- Tab-путь понятный;
-- мелкие цели увеличены.
-
-### 23.8 Админка
-
-Статус: не сделано.
-
-Нужно:
-
-- разбить длинные формы на более управляемые блоки/табы;
-- поправить якоря под sticky header;
-- добавить валидацию обязательных полей;
-- сделать опасные действия более безопасными.
-
-Критерий:
-
-- автор не видит десятки одинаковых `Сохранить` без контекста.
-
-### 23.9 Reference / Glossary / Scenarios
-
-Статус: не сделано.
-
-Нужно:
-
-- поиск/фильтр;
-- empty state;
-- для сценариев добавить открыть/копировать/использовать шаблон.
-
-Критерий:
-
-- поле поиска на справочных страницах реально помогает.
-
-### 23.10 Регрессионный QA
-
-Статус: не сделано.
-
-Нужно собрать Playwright smoke suite:
-
-- login;
-- navigation;
-- lesson;
-- practice;
-- test;
-- progress;
-- admin;
-- responsive.
-
-Критерий:
-
-- перед каждым новым наполнением можно быстро понять, что интерфейс не сломался.
-
-## 24. Скриншоты QA
-
-Папка:
-
-- `.codex-audit-admin-qa7/`
-
-Содержит 19 PNG-скриншотов:
-
-- admin overview;
-- admin library;
-- lesson editor;
-- clicks по user menu / notifications;
-- search typed / search enter.
-
-Эти скриншоты уже попали в коммит `e1b9a94`.
-
-Использовать как визуальное основание для следующих UI/UX правок, особенно по админке и topbar.
-
-## 25. Дизайн-направление
-
-Пользователь показал изображение `Student Learning Cockpit` и сказал, что оно понравилось.
-
-Нужно приводить вторичные страницы к этому cockpit-style:
-
-- `reference`
-- `glossary`
-- `scenarios`
-- `admin/library`
-- `admin/lessons/[id]`
-- `login`
-
-Уже была работа по cockpit-стилю, но пользователь затем отметил, что:
-
-- левое меню не должно быть якорями лендинга;
-- должна быть главная страница со статистикой, ачивками и общей картой;
-- `Уроки` должны вести на отдельную страницу уроков;
-- `Практика`, `Тесты`, `Ачивки` должны быть отдельными страницами;
-- структуру проекта нужно разделять так, чтобы можно было редактировать отдельные блоки сайта, не подтягивая весь контекст.
-
-Эта навигационная структура уже в основном реализована.
-
-## 26. Важные UX-решения для cockpit
-
-Главная `/` должна быть рабочей панелью, не лендингом:
-
-- приветствие;
-- статистика прохождения;
-- продолжить обучение;
-- карта маршрута;
-- выполненные/текущие уроки;
-- последние тесты;
-- последние ачивки;
-- быстрые справочные элементы.
-
-`/lessons`:
-
-- плитки уроков;
-- при клике открывается урок целиком.
-
-`/lessons/[slug]`:
-
-- блоки урока;
-- режимы/вкладки;
-- копирование промптов;
-- практика;
-- тест;
-- навигация дальше.
-
-`/practice`:
-
-- отдельный список практик и статусов.
-
-`/tests`:
-
-- отдельный список тестов и результатов.
-
-`/progress`:
-
-- нормальный экран прогресса и истории результатов.
-
-`/achievements`:
-
-- ачивки отдельно, не якорь.
-
-## 27. Исходные исследовательские документы
-
-Исходные исследования:
-
-- `docs/AI-kurs-dlya-yurista__issledovanie_claude.md`
-- `docs/AI_Course_Research_gemini.md`
-
-Сводные документы:
-
-- `docs/compiled_research_analysis.md` - компиляция двух исследований и обновлённая концепция курса.
-- `docs/advanced_ai_techniques.md` - дополнительные продвинутые техники.
-- `docs/course_program_web_service.md` - программа обучения и продуктовая структура веб-сервиса.
-
-Документ `docs/service_development_readiness_audit.md` был удалён по просьбе пользователя. Не ссылаться на него и не восстанавливать.
-
-## 28. Концепция курса
-
-Оптимальная структура основного курса: 8 занятий по 30-40 минут.
-
-Текущий план:
-
-1. Безопасность и обезличивание данных.
-2. Контекст-инжиниринг и управляемое ТЗ для ИИ.
-3. Декомпозиция задачи в многошаговый конвейер.
-4. Цитатный контроль и разделение фактов, выводов, предположений.
-5. Работа с длинными документами и контекстным окном.
-6. Проверка норм и дисциплина юрисдикции РФ.
-7. Агентный подход: ИИ-команда из ролей.
-8. Личная система: бенчмарк моделей, сценарии, журнал ошибок.
-
-Дополнительный трек из `docs/advanced_ai_techniques.md`:
-
-- structured outputs: таблицы и JSON;
-- личные evals;
-- guardrails и red teaming;
-- RAG и личная база знаний;
-- tool calling, MCP и ИИ как управляющий слой;
-- мультимодальный ИИ: PDF, сканы, таблицы;
-- browser agents и human-in-the-loop;
-- память, наблюдаемость и личная AI Operating System.
-
-## 29. Что должно остаться у ученика после курса
-
-Практические артефакты:
-
-- чек-лист обезличивания;
-- шаблон постановки задачи;
-- протокол анализа длинного документа;
-- шаблон таблицы рисков;
-- протокол сравнения редакций;
-- алгоритм проверки норм РФ и юридически чувствительных выводов;
-- набор агентных ролей;
-- таблица выбора модели;
-- журнал ошибок ИИ;
-- библиотека рабочих сценариев.
-
-## 30. Ограничения по юридической части
-
-Курс должен учить работе с ИИ, а не праву.
-
-Автор курса не должен самостоятельно утверждать юридическую правильность эталонов. Все образцы договоров, претензий и правовые выводы нужно проверять с квалифицированным юристом.
-
-Для реальных документов:
-
-- важна конфиденциальность;
-- учебные материалы должны быть вымышленными;
-- реальные документы перед загрузкой в ИИ нужно обезличивать;
-- не загружать персональные данные, реквизиты, внутренние условия и коммерческие секреты во внешние модели без проверки.
-
-## 31. VPS/deploy заметки
-
-Production `.env` по README:
+`service/.env.example`:
 
 ```bash
 DATABASE_URL="file:../data/prod.db"
-AUTH_SECRET="replace-with-output-of-openssl-rand-base64-48"
+AUTH_SECRET="replace-with-a-long-random-secret"
 SEED_STUDENT_PASSWORD="change-roman-password"
 SEED_QA_PASSWORD="1234"
 SEED_ADMIN_PASSWORD="change-nikita-password"
 QA_USERNAME="qa"
 QA_PASSWORD="1234"
 ```
+
+Важно:
+
+- `DATABASE_URL="file:../data/prod.db"` хранит SQLite в `service/data/prod.db`.
+- Папку `service/data/` нужно сохранять между деплоями и бэкапить.
+- В production cookie авторизации выставляется как secure, поэтому нужен HTTPS через домен.
 
 Первый запуск на VPS:
 
@@ -1038,88 +135,705 @@ npm run prod:setup
 PORT=3000 npm start
 ```
 
-Health check:
+Проверка:
 
 ```bash
 curl -f http://127.0.0.1:3000/api/health
 ```
 
-Systemd пример есть в `service/README.md`.
+Ожидаемый ответ:
 
-SQLite production база должна лежать в `service/data/prod.db`.
+```json
+{"ok":true,"database":"ok"}
+```
+
+Обновление на VPS:
+
+```bash
+cd /opt/ai-course
+git pull
+cd service
+npm ci
+npm run db:deploy
+npm run build
+sudo systemctl restart ai-course
+curl -f http://127.0.0.1:3000/api/health
+```
+
+Backup SQLite:
+
+```bash
+mkdir -p backups
+cp data/prod.db "backups/prod-$(date +%F-%H%M).db"
+```
+
+## 6. Пользователи и роли
+
+Роли:
+
+- `STUDENT`;
+- `ADMIN`.
+
+Стартовые пользователи создаются `npm run db:seed`:
+
+```text
+roman  / пароль из SEED_STUDENT_PASSWORD, fallback 1234 / STUDENT
+qa     / пароль из SEED_QA_PASSWORD, fallback 1234     / STUDENT
+nikita / пароль из SEED_ADMIN_PASSWORD, fallback 1234  / ADMIN
+```
+
+Важно: если пользователь уже существует, seed обновляет displayName/role, но не перезаписывает пароль.
+
+Для повторяемого тестирования без порчи прогресса Романа:
+
+```bash
+cd service
+npm run qa:reset
+```
+
+`qa:reset` создаёт/обновляет пользователя `qa`, сбрасывает только его прогресс, попытки тестов и ачивки.
+
+## 7. Основные маршруты сервиса
+
+Публичного лендинга нет. После входа пользователь попадает в учебный cockpit.
+
+```text
+/login                         вход
+/                              главная: статистика, карта, продолжение, ачивки
+/lessons                       плитки уроков
+/lessons/[slug]                рабочая страница урока
+/practice                      отдельная страница практики
+/tests                         отдельная страница тестов
+/progress                      прогресс, история, reset QA для qa
+/achievements                  ачивки
+/reference                     справочник
+/glossary                      глоссарий
+/scenarios                     сценарии
+/admin                         админка
+/admin/library                 справочник, глоссарий, сценарии, ачивки
+/admin/lessons/[lessonId]      редактирование урока, блоков, практики, тестов
+/api/health                    healthcheck
+```
+
+Навигация слева должна работать как реальные разделы, а не якоря лендинга.
+
+## 8. UI/UX текущее состояние
+
+Визуальный стиль: cockpit в духе выбранного референса `Student Learning Cockpit`.
+
+Ключевые решения:
+
+- тёмный левый сайдбар;
+- светлая технологичная рабочая область;
+- зелёный акцент;
+- HeroUI для интерактивных элементов;
+- lucide icons;
+- карточки/панели с аккуратными границами;
+- главная страница показывает статистику, прогресс, карту маршрута и ачивки;
+- уроки открываются отдельными страницами;
+- практика, тесты, прогресс, ачивки, справочник, глоссарий и сценарии вынесены на отдельные страницы;
+- админка отделена от ученического сценария.
+
+Markdown уроков рендерится через `service/src/components/markdown-content.tsx`.
+
+Рендер поддерживает:
+
+- `#`, `##`, `###`, `####`;
+- обычные абзацы;
+- ordered/unordered lists;
+- чек-листы `- [ ]` и `- [x]`;
+- blockquote `>`;
+- markdown tables;
+- code fences с кнопкой копирования;
+- inline code;
+- `**bold**`;
+- `*italic*`;
+- `__underline__`, `++underline++`, `<u>...</u>`;
+- `==highlight==`;
+- markdown links.
+
+Для готовых промптов обязательно использовать fenced code block:
+
+````md
+```text
+Текст промпта
+```
+````
+
+Такой блок получает кнопку `Копировать` и индикатор `Скопировано` / `В буфере`.
+
+## 9. База данных
+
+Prisma schema: `service/prisma/schema.prisma`.
+
+Основные модели:
+
+- `User`;
+- `Lesson`;
+- `LessonBlock`;
+- `Assignment`;
+- `LessonTest`;
+- `Question`;
+- `QuestionOption`;
+- `UserLessonProgress`;
+- `UserBlockProgress`;
+- `UserAssignmentProgress`;
+- `UserTestAttempt`;
+- `Achievement`;
+- `UserAchievement`;
+- `Scenario`;
+- `GlossaryTerm`;
+- `ReferenceItem`.
+
+Ключевые enum:
+
+```text
+UserRole: STUDENT, ADMIN
+PublicationStatus: DRAFT, PUBLISHED, ARCHIVED
+LessonKind: CORE, EXTRA
+LessonBlockType: OBJECTIVE, EXPLANATION, DEMONSTRATION, PRACTICE, PROMPTS, CHECK, ARTIFACT, MARKDOWN, CALLOUT
+ProgressStatus: NOT_STARTED, IN_PROGRESS, COMPLETED
+AssignmentStatus: NOT_STARTED, IN_PROGRESS, SUBMITTED, COMPLETED
+QuestionType: SINGLE_CHOICE, MULTIPLE_CHOICE, SORT_STEPS, FIND_PROMPT_ERROR, FILL_BLANK
+AchievementTriggerType: LESSON_COMPLETED, PRACTICE_COMPLETED, TEST_PASSED, SCENARIO_SAVED, MANUAL
+```
+
+## 10. Прогресс и правила завершения
+
+Прогресс хранится на сервере в SQLite.
+
+Текущее правило процента урока:
+
+```text
+totalUnits = published blocks + assignments + tests
+completedUnits = completed blocks + completed assignments + passed tests
+percent = round(completedUnits / totalUnits * 100)
+```
+
+Урок считается завершённым, когда:
+
+- все опубликованные блоки отмечены `Готово`;
+- практика завершена;
+- тест сдан.
+
+`refreshLessonProgress` обновляет:
+
+- `lastBlockId`;
+- `lastVisitedAt`;
+- `status`;
+- `percent`;
+- `completedAt`.
+
+Кнопки `Предыдущий блок` / `Следующий блок` как отдельная ручная навигация были признаны лишними. Основной сценарий: ученик читает блоки, нажимает `Готово`, система обновляет прогресс и плавно скроллит к следующему блоку.
+
+## 11. Практика и тесты
+
+Практика:
+
+- сохраняется на сервере;
+- статусы: `NOT_STARTED`, `IN_PROGRESS`, `SUBMITTED`, `COMPLETED`;
+- после выполнения может выдавать ачивку;
+- при проблемах с сессией важно не терять введённый текст.
+
+Тесты:
+
+- нельзя отправить пустой тест;
+- ответы сохраняются в `UserTestAttempt.answers`;
+- статистика учитывает ever passed: если тест однажды был сдан, урок может считать тестовый слой пройденным даже после неудачной поздней попытки;
+- после успешной сдачи теста выдаются тестовые ачивки.
+
+Типы вопросов:
+
+- `SINGLE_CHOICE`;
+- `MULTIPLE_CHOICE`;
+- `SORT_STEPS`;
+- `FIND_PROMPT_ERROR`;
+- `FILL_BLANK`.
+
+Для `correctText` можно задавать несколько правильных вариантов через `|`.
+
+Пример:
+
+```md
+correctText: нет задачи | нет формата | нет позитивной инструкции
+```
+
+Для `SORT_STEPS` лучше использовать короткие элементы, например буквы:
+
+```md
+correctOrder:
+1. B
+2. D
+3. C
+4. A
+```
+
+## 12. Ачивки
+
+Сейчас в базе 11 ачивок.
+
+Коды:
+
+```text
+safe-start
+task-architect
+step-by-step
+citation-discipline
+long-doc-tamer
+jurisdiction-control
+ai-team
+personal-system
+first-test
+practice-track
+course-finish
+```
+
+Логика выдачи в `service/src/lib/achievements.ts`:
+
+- `awardLessonAchievements` выдаёт уроковые ачивки и `course-finish`;
+- `awardPracticeAchievements` выдаёт практические ачивки и `practice-track`;
+- `awardTestAchievements` выдаёт `first-test`, уроковую ачивку для некоторых уроков и специальные тестовые ачивки.
+
+Важно: для урока 2 после успешного теста также выдаётся ачивка за урок через `awardTestAchievements`.
+
+## 13. Текущее состояние контента в БД
+
+По состоянию локальной SQLite на 2026-07-15:
+
+- пользователей: `roman`, `qa`, `nikita`;
+- core lessons: 8;
+- extra lessons: 8;
+- glossary terms: 27;
+- reference items: 12;
+- scenarios: 5;
+- achievements: 11.
+
+Core lessons:
+
+| order | slug | title | status | content state |
+| --- | --- | --- | --- | --- |
+| 1 | `data-safety` | Безопасность и обезличивание данных | PUBLISHED | импортирован контент-пакет `lesson-1-data-safety.md` |
+| 2 | `managed-ai-brief` | Контекст-инжиниринг и управляемое ТЗ для ИИ | PUBLISHED | импортирован и отформатирован `lesson-2-context-engineering.md` |
+| 3 | `task-decomposition` | Декомпозиция сложной задачи | PUBLISHED | в БД пока сидовый каркас; файл `lesson-3-task-decomposition.md` готовится |
+| 4 | `citation-control` | Цитатный контроль | PUBLISHED | сидовый каркас |
+| 5 | `long-documents` | Длинные документы и контекстное окно | PUBLISHED | сидовый каркас |
+| 6 | `rf-legal-check` | Проверка норм и дисциплина юрисдикции РФ | PUBLISHED | сидовый каркас |
+| 7 | `agent-roles` | Агентные роли | PUBLISHED | сидовый каркас |
+| 8 | `personal-ai-system` | Личная система работы с ИИ | PUBLISHED | сидовый каркас |
+
+Extra lessons из `docs/advanced_ai_techniques.md`:
+
+| order | slug | title |
+| --- | --- | --- |
+| 9 | `structured-outputs` | Структурированные ответы: таблицы и JSON |
+| 10 | `personal-evals` | Личные evals: как проверять промпты и модели |
+| 11 | `guardrails-red-teaming` | Guardrails и red teaming для личной работы |
+| 12 | `rag-knowledge-base` | RAG и личная база знаний |
+| 13 | `tool-calling-mcp` | Tool calling, MCP и ИИ как управляющий слой |
+| 14 | `multimodal-ai` | Мультимодальный ИИ: PDF, сканы, таблицы |
+| 15 | `browser-agents` | Browser agents и human-in-the-loop |
+| 16 | `ai-operating-system` | Память, наблюдаемость и личная AI Operating System |
+
+## 14. Контент-пакеты уроков
+
+Импортёр: `service/scripts/import-lesson-package.mjs`.
+
+Команда:
+
+```bash
+cd service
+npm run content:import -- ..\lesson-2-context-engineering.md
+```
+
+Если путь не указан, импортёр берёт `lesson-1-data-safety.md`.
 
 Важно:
 
-- папку `service/data/` сохранять между деплоями;
-- регулярно бэкапить `service/data/prod.db`;
-- перед крупными изменениями делать backup;
-- не коммитить production DB.
+- импортёр обновляет урок по `slug`;
+- для того же slug он пересоздаёт блоки, практику и тест;
+- это может сбросить прогресс, потому что меняются id блоков/практики/теста;
+- перед реальным использованием курса нужно решить стратегию обновления контента без потери прогресса.
 
-## 32. Что нельзя делать без явной просьбы
+Требуемая структура пакета:
 
-Не делать:
+````md
+# lesson
+slug: managed-ai-brief
+title: ...
+subtitle: ...
+description: ...
+durationMinutes: 45
+mainSkill: ...
 
-- не проводить диагностику ученика до подарка;
-- не возвращать РБ в основной курс без отдельной проверки;
-- не создавать новые отчётные markdown-файлы для кратких аудитов;
-- не удалять пользовательские изменения;
-- не делать `git reset --hard`;
-- не коммитить `.env`, базы, `node_modules`, `.next`;
-- не превращать главную страницу в маркетинговый лендинг;
-- не делать progress только в localStorage;
-- не ломать простой логин/пароль до решения о полноценной auth-системе;
-- не добавлять лишние зависимости без причины.
+# blocks
 
-## 33. Как работать дальше в Codex
+## block 1
+type: OBJECTIVE
+title: ...
+content: |
+  ...
 
-В начале нового чата:
+## block 2
+type: EXPLANATION
+title: ...
+content: |
+  ...
 
-1. Прочитать `CODEX_CONTEXT.md`.
-2. Выполнить `git status -sb`.
-3. Если работа дома после clone, поднять проект по шагам из раздела 7.
-4. Проверить `service/package.json`.
-5. Если задача про UI, открыть соответствующие файлы в `service/src/app` и `service/src/components`.
-6. Если задача про данные, открыть `service/prisma/schema.prisma`, `service/src/lib/course.ts`, `service/src/lib/progress.ts`.
-7. Если задача про контент, открыть `lesson-1-data-safety.md` и импортёр.
+# assignment
 
-Перед внесением кода:
+title: ...
+instructions: |
+  ...
+expectedProcess: |
+  ...
+checklist: |
+  - [ ] ...
 
-- коротко сказать пользователю, что именно меняется;
-- использовать `apply_patch`;
-- держать изменения локальными к задаче;
-- не делать незапрошенные рефакторы.
+# test
 
-Перед финалом:
+title: ...
+description: ...
+passingScore: 8
 
-- запускать релевантные проверки;
-- для кода сервиса обычно `npm run lint` и `npm run build`;
-- для DB/контента проверять импорт и Prisma-запросы;
-- для UI желательно Playwright/screenshot, особенно после responsive-правок;
-- кратко сказать, что изменено и что следующий пункт плана.
+## question 1
+type: SINGLE_CHOICE
+prompt: ...
+points: 1
+options:
+- [x] правильный вариант
+- [ ] неправильный вариант
+explanation: ...
 
-## 34. Следующий практический шаг
+# glossary
 
-Продолжать по плану исправлений с пункта 2:
+## term 1
+term: ...
+definition: ...
+content: |
+  ...
 
-**Починить responsive/mobile.**
+# referenceItems
 
-Конкретная ближайшая задача:
+## reference 1
+slug: ...
+title: ...
+category: ...
+content: |
+  ...
 
-1. Поднять локальный dev server.
-2. Проверить ключевые страницы на ширинах 390px, 768px, desktop.
-3. Найти root-level horizontal overflow.
-4. Исправить layout главной, урока, карты маршрута и topbar.
-5. Добавить или подготовить Playwright-проверку `scrollWidth <= viewportWidth + 2px`.
-6. Прогнать `npm run lint` и `npm run build`.
-7. Сообщить следующий пункт: topbar-заглушки.
+# scenario
 
-Ключевые страницы для проверки:
+slug: ...
+title: ...
+summary: ...
+content: |
+  ...
+````
 
-- `/`
-- `/lessons`
-- `/lessons/data-safety`
-- `/progress`
-- `/admin`
-- `/admin/library`
+Рекомендуемая структура урока:
 
-Использовать `qa / 1234` для пользовательских проверок.
+1. `OBJECTIVE`;
+2. `EXPLANATION`;
+3. `EXPLANATION`;
+4. `DEMONSTRATION`;
+5. `PROMPTS`;
+6. `PRACTICE`;
+7. `CHECK`;
+8. `ARTIFACT`.
+
+Для теста желательно 10 вопросов и все 5 типов:
+
+- 2-3 `SINGLE_CHOICE`;
+- 2 `MULTIPLE_CHOICE`;
+- 1-2 `SORT_STEPS`;
+- 2 `FIND_PROMPT_ERROR`;
+- 1-2 `FILL_BLANK`.
+
+## 15. Урок 1
+
+Файл:
+
+```text
+lesson-1-data-safety.md
+```
+
+Статус:
+
+- импортирован;
+- отображается через markdown renderer;
+- содержит 8 блоков, практику, тест, глоссарий, справочник, сценарий.
+
+Тема:
+
+- безопасность;
+- обезличивание;
+- что нельзя отдавать ИИ;
+- учебные/вымышленные документы;
+- безопасная замена чувствительных данных.
+
+## 16. Урок 2
+
+Файл:
+
+```text
+lesson-2-context-engineering.md
+```
+
+Slug:
+
+```text
+managed-ai-brief
+```
+
+Статус:
+
+- импортирован в существующий урок 2;
+- title в БД: `Контекст-инжиниринг и управляемое ТЗ для ИИ`;
+- 8 blocks;
+- 1 assignment;
+- 1 test;
+- 10 questions;
+- passingScore: 8;
+- maxScore: 10;
+- 9 glossary terms;
+- 4 reference items;
+- scenario: `context-task-brief`.
+
+Что сделано 2026-07-15:
+
+- исходный slug `context-engineering` заменён на `managed-ai-brief`, чтобы обновить существующую карточку урока 2;
+- удалены research citation-маркеры вида `cite...`;
+- сокращён description;
+- добавлены callout-блоки;
+- добавлены внутренние `###`-подзаголовки;
+- блок “8 полей ТЗ” переделан в markdown table;
+- добавлены подсветки `==...==`;
+- перед шаблонами промптов добавлено “Когда использовать”;
+- чек-лист сгруппирован;
+- смягчены правильные варианты для текстовых вопросов;
+- проверена кнопка копирования prompt code blocks.
+
+Проверки после импорта:
+
+```bash
+npm run lint
+npm run build
+```
+
+Production-страница проверялась локально на `http://127.0.0.1:3001/lessons/managed-ai-brief`:
+
+- сырой markdown не торчит;
+- таблица рендерится;
+- callout и highlight видны;
+- code blocks имеют `Копировать`;
+- копирование меняет буфер и показывает `Скопировано`.
+
+## 17. Урок 3
+
+Файл:
+
+```text
+lesson-3-task-decomposition.md
+```
+
+Slug:
+
+```text
+task-decomposition
+```
+
+Статус:
+
+- файл существует;
+- содержит 8 blocks и 8 questions;
+- в файле ещё есть research citation-маркеры `cite...`;
+- в БД сейчас сидовый каркас урока 3, а не финальный пакет из файла.
+
+Перед импортом урока 3 нужно:
+
+1. удалить citation/private-use markers;
+2. проверить формат всех секций;
+3. привести markdown к cockpit-стилю, как урок 2;
+4. желательно довести тест до 10 вопросов и всех 5 типов;
+5. импортировать:
+
+```bash
+cd service
+npm run content:import -- ..\lesson-3-task-decomposition.md
+```
+
+6. проверить:
+
+```bash
+npm run lint
+npm run build
+```
+
+## 18. Промпты для подготовки уроков 4-8
+
+Создана папка:
+
+```text
+lesson-research-prompts/
+```
+
+Файлы:
+
+```text
+lesson-research-prompts/lesson-4-citation-control-prompt.md
+lesson-research-prompts/lesson-5-long-documents-prompt.md
+lesson-research-prompts/lesson-6-rf-legal-check-prompt.md
+lesson-research-prompts/lesson-7-agent-roles-prompt.md
+lesson-research-prompts/lesson-8-personal-ai-system-prompt.md
+```
+
+Их задача: дома скормить исследовательской нейронке отдельный промпт по нужному уроку и получить готовый `.md` контент-пакет в формате импортёра.
+
+Правила для всех будущих пакетов:
+
+- не добавлять research citation widgets вида `cite...`;
+- источники указывать в `# referenceItems`;
+- учебные документы делать вымышленными;
+- не давать юридическую консультацию;
+- юридические выводы помечать как требующие ручной проверки;
+- использовать markdown-форматирование: таблицы, callout `>`, списки, `==highlight==`, code fences для промптов;
+- делать материал читаемым для ученика 50+.
+
+## 19. Главный план курса
+
+Основание:
+
+```text
+docs/compiled_research_analysis.md
+docs/course_program_web_service.md
+docs/advanced_ai_techniques.md
+```
+
+Основная программа:
+
+1. Безопасность и обезличивание данных.
+2. Контекст-инжиниринг и управляемое ТЗ для ИИ.
+3. Декомпозиция сложной задачи.
+4. Цитатный контроль.
+5. Длинные документы и контекстное окно.
+6. Проверка норм и дисциплина юрисдикции РФ.
+7. Агентный подход через роли.
+8. Личная система работы с ИИ.
+
+Дополнительные уроки из `docs/advanced_ai_techniques.md` уже есть в seed как extra lessons, но пока это каркас.
+
+## 20. Админка
+
+Админ-пользователь:
+
+```text
+nikita
+```
+
+Админские страницы:
+
+```text
+/admin
+/admin/library
+/admin/lessons/[lessonId]
+```
+
+Админка умеет:
+
+- создавать/редактировать уроки;
+- редактировать блоки урока;
+- редактировать практику;
+- редактировать тесты и варианты ответов;
+- управлять справочником;
+- управлять глоссарием;
+- управлять сценариями;
+- управлять ачивками.
+
+Важно по UX админки:
+
+- длинные формы уже частично разбиты, но всё ещё могут быть тяжёлыми;
+- при большом наполнении лучше добавлять табы/секции и валидацию;
+- контент-пакеты через markdown пока быстрее и безопаснее для массового наполнения, чем ручная админка.
+
+## 21. Известные технические риски и TODO
+
+Важное:
+
+- импортёр пересоздаёт дочерние записи урока, что может ломать старый прогресс по id;
+- урок 3 перед импортом надо очистить от citation-маркеров;
+- seed создаёт каркас для всех 16 уроков, но финальный контент есть только у уроков 1-2;
+- перед production нужно проверить `.env`, HTTPS, backup SQLite и systemd/reverse proxy;
+- responsive/mobile уже правился, но после крупных UI-изменений всегда прогонять smoke на 390/768/desktop;
+- после наполнения каждого урока прогонять ученический сценарий под `qa`;
+- юридические темы не считать проверенными без отдельной квалифицированной проверки.
+
+Желательные проверки перед каждым push:
+
+```bash
+cd service
+npm run lint
+npm run build
+```
+
+Для QA:
+
+```bash
+cd service
+npm run qa:reset
+npm run dev
+```
+
+Потом вручную пройти:
+
+- login `qa`;
+- главная;
+- урок;
+- отметка блоков `Готово`;
+- практика;
+- тест;
+- прогресс;
+- ачивки;
+- справочник/глоссарий/сценарии;
+- admin под `nikita`.
+
+## 22. Предпочтения пользователя
+
+Пользователь хочет:
+
+- делать свой сервис, а не Stepik;
+- HeroUI и красивый технологичный интерфейс;
+- отдельные страницы вместо якорей лендинга;
+- прогресс на сервере, не localStorage;
+- простой login/password;
+- `roman` как ученик;
+- `nikita` как админ;
+- `qa` для тестов;
+- SQLite достаточно;
+- ачивки нужны, механику можно развивать постепенно;
+- материалы наполнять через исследовательскую нейронку, потом импортировать в БД;
+- не создавать лишние audit-документы, если короткий вывод можно дать в чате;
+- после каждого крупного шага говорить, какой следующий пункт по плану.
+
+## 23. Рабочий стиль для следующего Codex
+
+Если продолжаешь проект:
+
+1. Сначала прочитай этот файл.
+2. Проверь `git status --short`.
+3. Не откатывай чужие изменения.
+4. Для поиска используй `rg`.
+5. Для ручных правок файлов используй `apply_patch`.
+6. После изменений запускай `npm run lint` и `npm run build` из `service/`.
+7. Для контента сначала правь `.md` пакет, потом импортируй в SQLite.
+8. После импорта проверяй, что нет `cite...` и похожих private-use markers.
+9. Если пользователь просит push, делай commit и `git push origin main`.
+
+## 24. Последнее подтверждённое состояние
+
+На момент обновления этого файла:
+
+- `npm run lint` проходил после форматирования урока 2;
+- `npm run build` проходил после форматирования урока 2;
+- lesson 2 импортирован и визуально проверен;
+- prompts for lessons 4-8 добавлены в `lesson-research-prompts/`;
+- текущая задача пользователя: обновить контекст, добавить промпты 4-8 и запушить всё на GitHub.
