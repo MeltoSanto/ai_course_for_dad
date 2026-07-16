@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import { Button } from "@heroui/react/button";
 import { LogIn } from "lucide-react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";

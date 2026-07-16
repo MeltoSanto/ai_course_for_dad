@@ -1,4 +1,4 @@
-import { Chip } from "@heroui/react";
+import { Chip } from "@heroui/react/chip";
 import type { AchievementTriggerType } from "@prisma/client";
 import { Award, Lock, Sparkles, Trophy } from "lucide-react";
 import { CockpitShell } from "@/components/cockpit-shell";

@@ -4,7 +4,7 @@ import {
   submitTestAction,
   type SubmitTestState,
 } from "@/app/actions/learning";
-import { Chip } from "@heroui/react";
+import { Chip } from "@heroui/react/chip";
 import {
   AlertCircle,
   CheckCircle2,

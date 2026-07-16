@@ -1,4 +1,5 @@
-import { Button, Chip } from "@heroui/react";
+import { Button } from "@heroui/react/button";
+import { Chip } from "@heroui/react/chip";
 import { CheckCircle2, ChevronRight, ClipboardCheck, History, ListChecks } from "lucide-react";
 import Link from "next/link";
 import { CockpitShell } from "@/components/cockpit-shell";

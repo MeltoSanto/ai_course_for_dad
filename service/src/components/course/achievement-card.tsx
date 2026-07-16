@@ -1,4 +1,4 @@
-import { Chip } from "@heroui/react";
+import { Chip } from "@heroui/react/chip";
 import { Lock } from "lucide-react";
 import { AchievementArtwork } from "./achievement-artwork";
 import { formatShortDate } from "./course-utils";

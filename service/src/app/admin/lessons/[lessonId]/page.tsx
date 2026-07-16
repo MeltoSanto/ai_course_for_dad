@@ -1,4 +1,6 @@
-import { Button, Card, Chip } from "@heroui/react";
+import { Button } from "@heroui/react/button";
+import { Card } from "@heroui/react/card";
+import { Chip } from "@heroui/react/chip";
 import {
   LessonBlockType,
   LessonKind,

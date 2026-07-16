@@ -1,4 +1,4 @@
-import { Chip } from "@heroui/react";
+import { Chip } from "@heroui/react/chip";
 import { TimelineRail, type TimelineStep } from "@/components/cockpit-ui";
 import { lessonHref } from "./course-utils";
 

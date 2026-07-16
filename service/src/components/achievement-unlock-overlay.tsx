@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import { Button } from "@heroui/react/button";
 import { Sparkles, Trophy, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";

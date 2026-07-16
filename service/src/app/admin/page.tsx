@@ -1,4 +1,5 @@
-import { Button, Chip } from "@heroui/react";
+import { Button } from "@heroui/react/button";
+import { Chip } from "@heroui/react/chip";
 import {
   BookOpen,
   Boxes,

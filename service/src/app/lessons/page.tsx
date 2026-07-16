@@ -1,4 +1,5 @@
-import { Button, Chip } from "@heroui/react";
+import { Button } from "@heroui/react/button";
+import { Chip } from "@heroui/react/chip";
 import { BookOpen, ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { CockpitShell } from "@/components/cockpit-shell";

@@ -1,4 +1,4 @@
-import { Chip } from "@heroui/react";
+import { Chip } from "@heroui/react/chip";
 import type { LessonKind, ProgressStatus, PublicationStatus } from "@prisma/client";
 import { ArrowRight, Clock3 } from "lucide-react";
 import Link from "next/link";

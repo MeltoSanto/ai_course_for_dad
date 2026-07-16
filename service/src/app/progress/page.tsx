@@ -1,4 +1,5 @@
-import { Button, Chip } from "@heroui/react";
+import { Button } from "@heroui/react/button";
+import { Chip } from "@heroui/react/chip";
 import { AssignmentStatus } from "@prisma/client";
 import { Award, CheckCircle2, ClipboardCheck, History, Trophy } from "lucide-react";
 import Link from "next/link";

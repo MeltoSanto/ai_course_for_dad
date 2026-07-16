@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:hosting": "npm run build && node scripts/prepare-standalone.mjs",
+    "build:hosting": "next build --webpack && node scripts/prepare-standalone.mjs",
     "start": "next start -H 0.0.0.0",
     "postinstall": "prisma generate",
     "lint": "eslint",

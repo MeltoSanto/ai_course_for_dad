@@ -1,4 +1,4 @@
-import { Chip } from "@heroui/react";
+import { Chip } from "@heroui/react/chip";
 import { PublicationStatus } from "@prisma/client";
 import { BookOpenText, Languages, Tags } from "lucide-react";
 import Link from "next/link";
