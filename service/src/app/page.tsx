@@ -256,6 +256,7 @@ export default async function Home() {
           <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
             <AchievementCard
               awardedAt={latestAchievement.awardedAt}
+              code={latestAchievement.achievement.code}
               description={latestAchievement.achievement.description}
               isUnlocked
               title={latestAchievement.achievement.title}

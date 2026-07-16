@@ -43,9 +43,8 @@ function loadDotEnv() {
 loadDotEnv();
 
 const prisma = new PrismaClient();
-const studentPassword = process.env.SEED_STUDENT_PASSWORD ?? "1234";
+const studentPassword = process.env.SEED_STUDENT_PASSWORD ?? "1407";
 const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "1234";
-const qaPassword = process.env.SEED_QA_PASSWORD ?? "1234";
 
 const coreLessons = [
   {
@@ -556,13 +555,6 @@ async function main() {
     username: "roman",
     password: studentPassword,
     displayName: "Роман",
-    role: UserRole.STUDENT,
-  });
-
-  await upsertUser({
-    username: "qa",
-    password: qaPassword,
-    displayName: "QA Tester",
     role: UserRole.STUDENT,
   });
 

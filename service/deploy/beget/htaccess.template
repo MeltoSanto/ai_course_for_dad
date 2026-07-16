@@ -1,0 +1,7 @@
+PassengerEnabled on
+PassengerAppType node
+PassengerNodejs __NODE_PATH__
+PassengerAppRoot __APP_ROOT__
+PassengerStartupFile passenger.cjs
+PassengerAppEnv production
+PassengerFriendlyErrorPages off

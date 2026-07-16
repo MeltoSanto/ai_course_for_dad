@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:hosting": "npm run build && node scripts/prepare-standalone.mjs",
     "start": "next start -H 0.0.0.0",
     "postinstall": "prisma generate",
     "lint": "eslint",
@@ -13,9 +14,9 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "node prisma/seed.mjs",
     "content:import": "node scripts/import-lesson-package.mjs",
-    "qa:reset": "node scripts/reset-qa-user.mjs",
     "db:studio": "prisma studio",
-    "prod:setup": "prisma migrate deploy && npm run db:seed && npm run build"
+    "prod:setup": "prisma migrate deploy && npm run db:seed && npm run build",
+    "prod:hosting": "prisma migrate deploy && npm run db:seed && npm run build:hosting"
   },
   "dependencies": {
     "@heroui/react": "^3.2.2",

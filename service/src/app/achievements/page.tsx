@@ -81,6 +81,7 @@ export default async function AchievementsPage() {
               <div className="grid gap-2" key={achievement.id}>
                 <AchievementCard
                   awardedAt={achievement.awardedAt}
+                  code={achievement.code}
                   description={achievement.description}
                   isUnlocked={achievement.isUnlocked}
                   title={achievement.title}

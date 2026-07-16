@@ -36,18 +36,18 @@ export function LoginForm() {
         </p>
         <h2 className="mt-2 text-2xl font-bold">Вход в курс</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          Используйте логин ученика или автора курса.
+          Введите своё имя и личный пароль. Регистр букв не имеет значения.
         </p>
       </div>
 
       <form action={formAction} className="flex flex-col gap-4">
         <label className="text-sm font-semibold">
-          Логин
+          Имя
           <input
             autoComplete="username"
             className="cockpit-input mt-2"
             name="username"
-            placeholder="roman"
+            placeholder="Введите своё имя"
             required
             type="text"
           />
@@ -59,7 +59,7 @@ export function LoginForm() {
             autoComplete="current-password"
             className="cockpit-input mt-2"
             name="password"
-            placeholder="1234"
+            placeholder="Введите свой личный пароль"
             required
             type="password"
           />

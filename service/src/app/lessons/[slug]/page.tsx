@@ -1,7 +1,6 @@
 import { Button, Chip } from "@heroui/react";
 import {
   AssignmentStatus,
-  LessonBlockType,
   ProgressStatus,
 } from "@prisma/client";
 import {
@@ -14,12 +13,14 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { submitAssignmentAction } from "@/app/actions/learning";
-import { CompleteBlockButton } from "@/app/lessons/[slug]/complete-block-button";
 import { LessonModeTabs } from "@/app/lessons/[slug]/lesson-mode-tabs";
-import { CopyPromptButton } from "@/app/lessons/[slug]/copy-prompt-button";
 import { TestForm } from "@/app/lessons/[slug]/test-form";
 import { CockpitShell } from "@/components/cockpit-shell";
 import { TimelineRail, type TimelineStep } from "@/components/cockpit-ui";
+import {
+  blockTypeLabels,
+  LessonBlockCard,
+} from "@/components/course/lesson-block-card";
 import { MarkdownContent } from "@/components/markdown-content";
 import {
   getLessonWorkspace,
@@ -28,18 +29,6 @@ import {
   statusLabels,
 } from "@/lib/course";
 import { requireUser } from "@/lib/session";
-
-const blockTypeLabels: Record<LessonBlockType, string> = {
-  OBJECTIVE: "Цель",
-  EXPLANATION: "Объяснение",
-  DEMONSTRATION: "Демонстрация",
-  PRACTICE: "Практика",
-  PROMPTS: "Промпты",
-  CHECK: "Проверка",
-  ARTIFACT: "Артефакт",
-  MARKDOWN: "Материал",
-  CALLOUT: "Акцент",
-};
 
 const assignmentStatusLabels: Record<AssignmentStatus, string> = {
   NOT_STARTED: "Не начато",
@@ -92,11 +81,11 @@ export default async function LessonPage({ params }: LessonPageProps) {
 
   return (
     <CockpitShell active="lessons" continueHref={continueHref} user={user}>
-      <div className="tech-canvas -mx-5 -my-5 min-h-[calc(100vh-84px)] px-5 py-5 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="tech-canvas -mx-5 -my-5 min-h-[calc(100vh-84px)] min-w-0 max-w-[calc(100%+2.5rem)] px-5 py-5 sm:-mx-6 sm:max-w-[calc(100%+3rem)] sm:px-6 lg:-mx-8 lg:max-w-[calc(100%+4rem)] lg:px-8">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
           <section className="cockpit-panel min-w-0 p-5 sm:p-7">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-              <div>
+              <div className="min-w-0">
                 <Link
                   className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--signal-green)]"
                   href="/"
@@ -128,7 +117,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
                 ) : null}
               </div>
 
-              <div className="min-w-56 rounded-xl border border-[var(--line)] bg-white/82 p-4">
+              <div className="w-full min-w-0 rounded-xl border border-[var(--line)] bg-white/82 p-4 sm:w-auto sm:min-w-56">
                 <div className="mb-2 flex items-center justify-between text-sm">
                   <span className="text-[var(--muted)]">Прогресс урока</span>
                   <strong>{percent}%</strong>
@@ -262,7 +251,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
           />
         </div>
 
-        <section className="mt-5 grid scroll-mt-28 gap-4" id="materials">
+        <section className="mt-5 grid min-w-0 grid-cols-[minmax(0,1fr)] scroll-mt-28 gap-4" id="materials">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-2xl font-bold">Материал урока</h2>
@@ -280,73 +269,19 @@ export default async function LessonPage({ params }: LessonPageProps) {
             const isLastBlock = index === lesson.blocks.length - 1;
 
             return (
-              <article
-                className="cockpit-panel scroll-mt-28 p-5"
-                id={`block-${block.id}`}
+              <LessonBlockCard
+                block={block}
+                isCompleted={isCompleted}
+                isLastBlock={isLastBlock}
                 key={block.id}
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <div className="flex flex-wrap gap-2">
-                      <Chip variant="soft" color="accent">
-                        {blockTypeLabels[block.type]}
-                      </Chip>
-                      {isCompleted ? (
-                        <Chip variant="soft" color="success">
-                          Готово
-                        </Chip>
-                      ) : null}
-                    </div>
-                    <h3 className="mt-3 text-xl font-bold">
-                      {block.order}. {block.title}
-                    </h3>
-                  </div>
-                  {block.type === LessonBlockType.PROMPTS ? (
-                    <CopyPromptButton content={block.contentMd} />
-                  ) : null}
-                </div>
-
-                <div
-                  className={`mt-4 p-4 ${
-                    block.type === LessonBlockType.PROMPTS
-                      ? "prompt-console"
-                      : "cockpit-muted-panel"
-                  }`}
-                >
-                  <MarkdownContent
-                    content={block.contentMd}
-                    tone={
-                      block.type === LessonBlockType.PROMPTS
-                        ? "prompt"
-                        : "default"
-                    }
-                  />
-                </div>
-
-                <div className="mt-5 flex flex-col gap-3 border-t border-[var(--line)] pt-4 sm:flex-row sm:items-center sm:justify-end">
-                  <div className="flex flex-wrap gap-2">
-                    <CompleteBlockButton
-                      blockId={block.id}
-                      isCompleted={isCompleted}
-                      lessonId={lesson.id}
-                      slug={lesson.slug}
-                    />
-                    {isLastBlock ? (
-                      <a href="#practice">
-                        <Button variant="secondary">
-                          К практике
-                          <ChevronRight size={16} />
-                        </Button>
-                      </a>
-                    ) : null}
-                  </div>
-                </div>
-              </article>
+                lessonId={lesson.id}
+                lessonSlug={lesson.slug}
+              />
             );
           })}
         </section>
 
-        <section className="mt-6 grid scroll-mt-28 gap-4" id="practice">
+        <section className="mt-6 grid min-w-0 grid-cols-[minmax(0,1fr)] scroll-mt-28 gap-4" id="practice">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-2xl font-bold">Практика</h2>
@@ -368,7 +303,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
               assignmentProgress?.status ?? AssignmentStatus.NOT_STARTED;
 
             return (
-              <article className="cockpit-panel p-5" key={assignment.id}>
+              <article className="cockpit-panel min-w-0 p-5" key={assignment.id}>
                 <div className="flex flex-wrap gap-2">
                   <Chip variant="soft" color="accent">
                     <ListChecks size={14} />
@@ -393,8 +328,8 @@ export default async function LessonPage({ params }: LessonPageProps) {
                   </p>
                 ) : null}
 
-                <div className="mt-4 grid gap-4 text-sm leading-7 text-[#383f3b] lg:grid-cols-[1fr_420px]">
-                  <div>
+                <div className="mt-4 grid min-w-0 gap-4 text-sm leading-7 text-[#383f3b] lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
+                  <div className="min-w-0">
                     <div className="cockpit-muted-panel p-4">
                       <MarkdownContent content={assignment.instructionsMd} />
                     </div>
@@ -426,7 +361,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
                       assignment.id,
                       lesson.slug,
                     )}
-                    className="rounded-xl border border-[var(--line)] bg-white/86 p-4"
+                    className="min-w-0 rounded-xl border border-[var(--line)] bg-white/86 p-4"
                   >
                     <label className="block text-sm font-semibold text-[var(--foreground)]">
                       Ответ ученика / итоговый артефакт
@@ -457,7 +392,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
           })}
         </section>
 
-        <section className="mt-6 grid scroll-mt-28 gap-4" id="tests">
+        <section className="mt-6 grid min-w-0 grid-cols-[minmax(0,1fr)] scroll-mt-28 gap-4" id="tests">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-2xl font-bold">Проверка</h2>
@@ -482,7 +417,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
             const hasPassed = test.attempts.some((attempt) => attempt.isPassed);
 
             return (
-              <article className="cockpit-panel p-5" key={test.id}>
+              <article className="cockpit-panel min-w-0 p-5" key={test.id}>
                 <div className="flex flex-wrap gap-2">
                   <Chip variant="soft" color="success">
                     <ClipboardCheck size={14} />

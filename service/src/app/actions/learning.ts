@@ -13,6 +13,11 @@ import {
 } from "@/lib/achievements";
 import { refreshLessonProgress } from "@/lib/progress";
 import { requireUser } from "@/lib/session";
+import {
+  buildSortQuestionModel,
+  isCorrectSortSelection,
+  normalizeSortSelection,
+} from "@/lib/sort-question";
 
 type StoredAnswer = {
   questionId: string;
@@ -69,53 +74,6 @@ function sameSet(left: string[], right: string[]) {
   return (
     first.length === second.length &&
     first.every((value, index) => value === second[index])
-  );
-}
-
-function normalizeStep(value: string) {
-  return normalize(value.replace(/^\s*\d+[.)]\s+/, ""));
-}
-
-function parseStepOrder(value: string | null | undefined) {
-  const source = String(value ?? "").trim();
-
-  if (!source) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(source) as unknown;
-
-    if (Array.isArray(parsed)) {
-      return parsed.map(String).map((item) => item.trim()).filter(Boolean);
-    }
-  } catch {
-    // Plain newline text is also accepted.
-  }
-
-  return source
-    .replace(/\r/g, "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => line.replace(/^\s*\d+[.)]\s+/, "").trim())
-    .filter(Boolean);
-}
-
-function sameStepOrder(answer: string, correctOrder: string | null) {
-  const answerSteps = parseStepOrder(answer);
-  const correctSteps = parseStepOrder(correctOrder);
-
-  if (
-    answerSteps.length === 0 ||
-    correctSteps.length === 0 ||
-    answerSteps.length !== correctSteps.length
-  ) {
-    return false;
-  }
-
-  return answerSteps.every(
-    (step, index) => normalizeStep(step) === normalizeStep(correctSteps[index]),
   );
 }
 
@@ -291,17 +249,26 @@ export async function submitTestAction(
     }
 
     if (question.type === QuestionType.SORT_STEPS) {
-      const userAnswer = text(formData, `question_${question.id}`);
-      const correctSteps = parseStepOrder(question.correctOrder);
+      const model = buildSortQuestionModel({
+        correctOrder: question.correctOrder,
+        prompt: question.prompt,
+      });
+      const selectedKeys = normalizeSortSelection(
+        formData.getAll(`question_${question.id}`).map(String),
+        model,
+      );
 
-      answer = userAnswer;
-      correctAnswer = correctSteps;
+      answer = selectedKeys;
+      correctAnswer = model.correctKeys;
 
-      if (normalize(userAnswer) === "") {
+      if (
+        selectedKeys.length !== model.variants.length ||
+        selectedKeys.some((key) => key === "")
+      ) {
         missingQuestionIds.push(question.id);
       }
 
-      isCorrect = sameStepOrder(userAnswer, question.correctOrder);
+      isCorrect = isCorrectSortSelection(selectedKeys, model);
     }
 
     if (

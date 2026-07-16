@@ -33,7 +33,7 @@ remote: origin https://github.com/MeltoSanto/ai_course_for_dad.git
 docs/                         исследовательские материалы и программа
 service/                      Next.js веб-сервис
 service/prisma/               Prisma schema, миграции, seed
-service/scripts/              импорт контент-пакетов и reset QA
+service/scripts/              импорт контент-пакетов и подготовка standalone-сборки
 service/src/app/              App Router страницы и server actions
 service/src/components/       общие UI-компоненты
 service/src/lib/              DB/session/course/progress/achievements helpers
@@ -76,7 +76,6 @@ npm run db:migrate     # prisma migrate dev
 npm run db:deploy      # prisma migrate deploy
 npm run db:seed        # node prisma/seed.mjs
 npm run content:import # node scripts/import-lesson-package.mjs
-npm run qa:reset       # node scripts/reset-qa-user.mjs
 npm run db:studio      # prisma studio
 npm run prod:setup     # migrate deploy + seed + build
 ```
@@ -113,10 +112,7 @@ npm run dev -- -H 127.0.0.1 -p 3001
 DATABASE_URL="file:../data/prod.db"
 AUTH_SECRET="replace-with-a-long-random-secret"
 SEED_STUDENT_PASSWORD="change-roman-password"
-SEED_QA_PASSWORD="1234"
 SEED_ADMIN_PASSWORD="change-nikita-password"
-QA_USERNAME="qa"
-QA_PASSWORD="1234"
 ```
 
 Важно:
@@ -177,21 +173,13 @@ cp data/prod.db "backups/prod-$(date +%F-%H%M).db"
 Стартовые пользователи создаются `npm run db:seed`:
 
 ```text
-roman  / пароль из SEED_STUDENT_PASSWORD, fallback 1234 / STUDENT
-qa     / пароль из SEED_QA_PASSWORD, fallback 1234     / STUDENT
-nikita / пароль из SEED_ADMIN_PASSWORD, fallback 1234  / ADMIN
+roman  / пароль из SEED_STUDENT_PASSWORD, fallback 1407 / STUDENT
+nikita / пароль из SEED_ADMIN_PASSWORD, fallback 1234   / ADMIN
 ```
 
 Важно: если пользователь уже существует, seed обновляет displayName/role, но не перезаписывает пароль.
 
-Для повторяемого тестирования без порчи прогресса Романа:
-
-```bash
-cd service
-npm run qa:reset
-```
-
-`qa:reset` создаёт/обновляет пользователя `qa`, сбрасывает только его прогресс, попытки тестов и ачивки.
+Логин и пароль проверяются без учёта регистра. Тестовые функции доступны администратору `nikita`; отдельный пользователь `qa` удалён и seed больше его не создаёт.
 
 ## 7. Основные маршруты сервиса
 
@@ -204,8 +192,9 @@ npm run qa:reset
 /lessons/[slug]                рабочая страница урока
 /practice                      отдельная страница практики
 /tests                         отдельная страница тестов
-/progress                      прогресс, история, reset QA для qa
+/progress                      прогресс, история и сброс тестового прогресса для администратора
 /achievements                  ачивки
+/search                        глобальный поиск по урокам, справочнику, глоссарию и сценариям
 /reference                     справочник
 /glossary                      глоссарий
 /scenarios                     сценарии
@@ -233,6 +222,11 @@ npm run qa:reset
 - уроки открываются отдельными страницами;
 - практика, тесты, прогресс, ачивки, справочник, глоссарий и сценарии вынесены на отдельные страницы;
 - админка отделена от ученического сценария.
+- шапка содержит глобальный поиск по урокам, справочнику, глоссарию и сценариям;
+- блок пользователя в шапке оформлен как информационный, а не как ложная кнопка;
+- справочник имеет фильтры, сортировку, понятные русские категории и объяснения назначения материалов;
+- глоссарий оформлен как словарь с алфавитной навигацией, поиском и единым форматированием терминов;
+- все карточки уроков и блоки промптов используют общий дочерний компонент, который предотвращает горизонтальный выход за экран.
 
 Markdown уроков рендерится через `service/src/components/markdown-content.tsx`.
 
@@ -396,16 +390,27 @@ course-finish
 
 Важно: для урока 2 после успешного теста также выдаётся ачивка за урок через `awardTestAchievements`.
 
+Изображения ачивок:
+
+- исходные атласы лежат в `service/public/achievements/`;
+- `AchievementArtwork` сопоставляет каждый из 11 кодов со своей миниатюрой;
+- круглые изображения используются в каталогах и карточках прогресса;
+- большая версия показывается в полноэкранном окне при получении ачивки;
+- атласы отдаются без повторного уменьшения Next Image, поэтому сохраняют исходную чёткость;
+- `AchievementUnlockOverlay` показывает анимированное уведомление и не повторяет уже просмотренное событие;
+- в `/admin/library#achievements` у каждой активной ачивки есть кнопка `Получить и показать` для проверки;
+- повторная тестовая выдача обновляет `awardedAt`, поэтому анимацию можно запускать многократно.
+
 ## 13. Текущее состояние контента в БД
 
-По состоянию локальной SQLite на 2026-07-15:
+По состоянию локальной SQLite на 2026-07-16:
 
-- пользователей: `roman`, `qa`, `nikita`;
+- пользователей: `roman`, `nikita`;
 - core lessons: 8;
 - extra lessons: 8;
-- glossary terms: 27;
-- reference items: 12;
-- scenarios: 5;
+- glossary terms: 78;
+- reference items: 42;
+- scenarios: 11;
 - achievements: 11.
 
 Core lessons:
@@ -414,12 +419,12 @@ Core lessons:
 | --- | --- | --- | --- | --- |
 | 1 | `data-safety` | Безопасность и обезличивание данных | PUBLISHED | импортирован контент-пакет `lesson-1-data-safety.md` |
 | 2 | `managed-ai-brief` | Контекст-инжиниринг и управляемое ТЗ для ИИ | PUBLISHED | импортирован и отформатирован `lesson-2-context-engineering.md` |
-| 3 | `task-decomposition` | Декомпозиция сложной задачи | PUBLISHED | в БД пока сидовый каркас; файл `lesson-3-task-decomposition.md` готовится |
-| 4 | `citation-control` | Цитатный контроль | PUBLISHED | сидовый каркас |
-| 5 | `long-documents` | Длинные документы и контекстное окно | PUBLISHED | сидовый каркас |
-| 6 | `rf-legal-check` | Проверка норм и дисциплина юрисдикции РФ | PUBLISHED | сидовый каркас |
-| 7 | `agent-roles` | Агентные роли | PUBLISHED | сидовый каркас |
-| 8 | `personal-ai-system` | Личная система работы с ИИ | PUBLISHED | сидовый каркас |
+| 3 | `task-decomposition` | Декомпозиция сложной задачи | PUBLISHED | импортирован и отформатирован `lesson-3-task-decomposition.md` |
+| 4 | `citation-control` | Цитатный контроль | PUBLISHED | импортирован и отформатирован `lesson-4-citation-control.md` |
+| 5 | `long-documents` | Длинные документы и контекстное окно | PUBLISHED | импортирован и отформатирован `lesson-5-long-documents.md` |
+| 6 | `rf-legal-check` | Проверка норм и дисциплина юрисдикции РФ | PUBLISHED | импортирован и отформатирован `lesson-6-rf-legal-check.md` |
+| 7 | `agent-roles` | Агентные роли | PUBLISHED | импортирован и отформатирован `lesson-7-agent-roles.md` |
+| 8 | `personal-ai-system` | Личная система работы с ИИ | PUBLISHED | импортирован и отформатирован `lesson-8-personal-ai-system.md` |
 
 Extra lessons из `docs/advanced_ai_techniques.md`:
 
@@ -644,32 +649,303 @@ task-decomposition
 
 Статус:
 
-- файл существует;
-- содержит 8 blocks и 8 questions;
-- в файле ещё есть research citation-маркеры `cite...`;
-- в БД сейчас сидовый каркас урока 3, а не финальный пакет из файла.
+- импортирован в существующий урок 3;
+- title в БД: `Декомпозиция сложной задачи для ИИ`;
+- 8 blocks;
+- 1 assignment;
+- 1 test;
+- 10 questions;
+- passingScore: 8;
+- maxScore: 10;
+- 8 glossary terms в пакете;
+- 3 reference items в пакете;
+- scenario: `document-analysis-pipeline`.
 
-Перед импортом урока 3 нужно:
+Что сделано 2026-07-16:
 
-1. удалить citation/private-use markers;
-2. проверить формат всех секций;
-3. привести markdown к cockpit-стилю, как урок 2;
-4. желательно довести тест до 10 вопросов и всех 5 типов;
-5. импортировать:
+- удалены research citation-маркеры вида `cite...`;
+- удалён служебный блок `# sourceNotes`;
+- сокращён description;
+- добавлены callout-блоки;
+- добавлены внутренние `###`-подзаголовки;
+- добавлены markdown tables для схемы конвейера и демонстрации;
+- учебный фрагмент практики завернут в code block;
+- шаблоны промптов сгруппированы с пояснениями “когда использовать”;
+- чек-лист сгруппирован по этапам контроля;
+- тест доведён до 10 вопросов, 10 баллов и всех 5 типов.
+
+Команда импорта:
 
 ```bash
 cd service
 npm run content:import -- ..\lesson-3-task-decomposition.md
 ```
 
-6. проверить:
+Проверки после импорта:
 
 ```bash
 npm run lint
 npm run build
 ```
 
-## 18. Промпты для подготовки уроков 4-8
+## 18. Урок 4
+
+Файл:
+
+```text
+lesson-4-citation-control.md
+```
+
+Slug:
+
+```text
+citation-control
+```
+
+Статус:
+
+- импортирован в существующий урок 4;
+- title в БД: `Цитатный контроль`;
+- 8 blocks;
+- 1 assignment;
+- 1 test;
+- 10 questions;
+- passingScore: 8;
+- maxScore: 10;
+- 10 glossary terms в пакете, часть терминов обновляет существующие записи;
+- 6 reference items в пакете;
+- scenario: `citation-table-review`.
+
+Что сделано 2026-07-16:
+
+- удалены research citation-маркеры вида `cite...`;
+- тест нормализован до 10 вопросов и 10 баллов;
+- `SORT_STEPS` переведён на ответ буквами, чтобы ученику не нужно было переписывать длинные фразы;
+- секции `# glossary` и `# referenceItems` переведены из формата `## term` / `## reference` в формат импортёра `- term:` / `- slug:`;
+- импортирован полный пакет: блоки, практика, тест, глоссарий, справочник и сценарий.
+
+Команда импорта:
+
+```bash
+cd service
+npm run content:import -- ..\lesson-4-citation-control.md
+```
+
+Проверки после импорта:
+
+```bash
+npm run lint
+npm run build
+```
+
+## 19. Урок 5
+
+Файл:
+
+```text
+lesson-5-long-documents.md
+```
+
+Slug:
+
+```text
+long-documents
+```
+
+Статус:
+
+- импортирован в существующий урок 5;
+- title в БД: `Длинные документы и контекстное окно`;
+- 8 blocks;
+- 1 assignment;
+- 1 test;
+- 10 questions;
+- passingScore: 8;
+- maxScore: 10;
+- 10 glossary terms в пакете, часть терминов обновляет существующие записи;
+- 5 reference items в пакете;
+- scenario: `long-document-protocol`.
+
+Что сделано 2026-07-16:
+
+- удалены research citation-маркеры вида `cite...`;
+- тест нормализован до 10 вопросов и 10 баллов;
+- оба `SORT_STEPS` переведены на ответ буквами, чтобы ученик не переписывал длинные фразы;
+- секции `# glossary` и `# referenceItems` переведены из формата `## term` / `## reference` в формат импортёра `- term:` / `- slug:`;
+- импортирован полный пакет: блоки, практика, тест, глоссарий, справочник и сценарий.
+
+Команда импорта:
+
+```bash
+cd service
+npm run content:import -- ..\lesson-5-long-documents.md
+```
+
+Проверки после импорта:
+
+```bash
+npm run lint
+npm run build
+```
+
+## 20. Урок 6
+
+Файл:
+
+```text
+lesson-6-rf-legal-check.md
+```
+
+Slug:
+
+```text
+rf-legal-check
+```
+
+Статус:
+
+- импортирован в существующий урок 6;
+- title в БД: `Проверка норм и дисциплина юрисдикции РФ`;
+- 10 blocks;
+- 1 assignment;
+- 1 test;
+- 10 questions;
+- passingScore: 8;
+- maxScore: 10;
+- 10 glossary terms в пакете, часть терминов обновляет существующие записи;
+- 6 reference items в пакете;
+- scenario: `rf-check-protocol`.
+
+Что сделано 2026-07-16:
+
+- файл уже пришёл без research citation-маркеров;
+- тест был переписан из неподдерживаемых типов `TRUE_FALSE`, `MATCHING`, `ORDERING` в поддерживаемые `SINGLE_CHOICE`, `MULTIPLE_CHOICE`, `FILL_BLANK`, `FIND_PROMPT_ERROR`, `SORT_STEPS`;
+- оба `SORT_STEPS` переведены на ответ буквами, чтобы ученик не переписывал длинные фразы;
+- секции `# glossary` и `# referenceItems` переведены из формата `## term` / `## reference` в формат импортёра `- term:` / `- slug:`;
+- импортирован полный пакет: блоки, практика, тест, глоссарий, справочник и сценарий.
+
+Команда импорта:
+
+```bash
+cd service
+npm run content:import -- ..\lesson-6-rf-legal-check.md
+```
+
+Проверки после импорта:
+
+```bash
+npm run lint
+npm run build
+```
+
+Важно по содержанию:
+
+- урок построен как учебная дисциплина проверки, а не как юридическая консультация;
+- нормы и правовые выводы должны оставаться помеченными как требующие ручной проверки по официальным источникам РФ.
+
+## 21. Урок 7
+
+Файл:
+
+```text
+lesson-7-agent-roles.md
+```
+
+Slug:
+
+```text
+agent-roles
+```
+
+Статус:
+
+- импортирован в существующий урок 7;
+- title в БД: `Агентный подход через роли`;
+- 9 blocks;
+- 1 assignment;
+- 1 test;
+- 10 questions;
+- passingScore: 8;
+- maxScore: 10;
+- 10 glossary terms в пакете;
+- 6 reference items в пакете;
+- scenario: `ai-role-team`.
+
+Что сделано 2026-07-16:
+
+- файл уже пришёл без research citation-маркеров;
+- тест был переписан из неподдерживаемых типов `TRUE_FALSE`, `ORDERING`, `SHORT_ANSWER` в поддерживаемые `SINGLE_CHOICE`, `MULTIPLE_CHOICE`, `FILL_BLANK`, `FIND_PROMPT_ERROR`, `SORT_STEPS`;
+- оба `SORT_STEPS` переведены на ответ буквами, чтобы ученик не переписывал длинные фразы;
+- секции `# glossary` и `# referenceItems` переведены из формата `## term` / `## reference` в формат импортёра `- term:` / `- slug:`;
+- импортирован полный пакет: блоки, практика, тест, глоссарий, справочник и сценарий.
+
+Команда импорта:
+
+```bash
+cd service
+npm run content:import -- ..\lesson-7-agent-roles.md
+```
+
+Проверки после импорта:
+
+```bash
+npm run lint
+npm run build
+```
+
+## 22. Урок 8
+
+Файл:
+
+```text
+lesson-8-personal-ai-system.md
+```
+
+Slug:
+
+```text
+personal-ai-system
+```
+
+Статус:
+
+- импортирован в существующий урок 8;
+- title в БД: `Личная система работы с ИИ`;
+- 8 blocks;
+- 1 assignment;
+- 1 test;
+- 10 questions;
+- passingScore: 8;
+- maxScore: 10;
+- 10 glossary terms в пакете;
+- 4 reference items в пакете;
+- scenario: `personal-ai-system-template`.
+
+Что сделано 2026-07-16:
+
+- файл уже пришёл без research citation-маркеров;
+- добавлены внутренние `###`-подзаголовки для читаемости;
+- готовые промпты разделены на отдельные code blocks, чтобы у каждого была своя кнопка копирования;
+- тест был переписан из неподдерживаемых типов `ORDER`, `MATCH`, `TEXT_INPUT` в поддерживаемые `SINGLE_CHOICE`, `MULTIPLE_CHOICE`, `FILL_BLANK`, `FIND_PROMPT_ERROR`, `SORT_STEPS`;
+- оба `SORT_STEPS` переведены на ответ буквами, чтобы ученик не переписывал длинные фразы;
+- секции `# glossary` и `# referenceItems` переведены из формата `## term` / `## reference` в формат импортёра `- term:` / `- slug:`;
+- импортирован полный пакет: блоки, практика, тест, глоссарий, справочник и сценарий.
+
+Команда импорта:
+
+```bash
+cd service
+npm run content:import -- ..\lesson-8-personal-ai-system.md
+```
+
+Проверки после импорта:
+
+```bash
+npm run lint
+npm run build
+```
+
+## 23. Промпты для подготовки уроков 4-8
 
 Создана папка:
 
@@ -699,7 +975,7 @@ lesson-research-prompts/lesson-8-personal-ai-system-prompt.md
 - использовать markdown-форматирование: таблицы, callout `>`, списки, `==highlight==`, code fences для промптов;
 - делать материал читаемым для ученика 50+.
 
-## 19. Главный план курса
+## 24. Главный план курса
 
 Основание:
 
@@ -722,7 +998,7 @@ docs/advanced_ai_techniques.md
 
 Дополнительные уроки из `docs/advanced_ai_techniques.md` уже есть в seed как extra lessons, но пока это каркас.
 
-## 20. Админка
+## 25. Админка
 
 Админ-пользователь:
 
@@ -747,7 +1023,9 @@ nikita
 - управлять справочником;
 - управлять глоссарием;
 - управлять сценариями;
-- управлять ачивками.
+- управлять ачивками;
+- выдавать любую активную ачивку себе кнопкой `Получить и показать`;
+- сбрасывать собственный тестовый прогресс со страницы `/progress` без изменения материалов курса.
 
 Важно по UX админки:
 
@@ -755,16 +1033,15 @@ nikita
 - при большом наполнении лучше добавлять табы/секции и валидацию;
 - контент-пакеты через markdown пока быстрее и безопаснее для массового наполнения, чем ручная админка.
 
-## 21. Известные технические риски и TODO
+## 26. Известные технические риски и TODO
 
 Важное:
 
 - импортёр пересоздаёт дочерние записи урока, что может ломать старый прогресс по id;
-- урок 3 перед импортом надо очистить от citation-маркеров;
-- seed создаёт каркас для всех 16 уроков, но финальный контент есть только у уроков 1-2;
+- seed создаёт каркас для всех 16 уроков; полноценный контент импортирован для основных уроков 1-8, extra lessons 9-16 пока остаются каркасами;
 - перед production нужно проверить `.env`, HTTPS, backup SQLite и systemd/reverse proxy;
 - responsive/mobile уже правился, но после крупных UI-изменений всегда прогонять smoke на 390/768/desktop;
-- после наполнения каждого урока прогонять ученический сценарий под `qa`;
+- после наполнения каждого урока прогонять ученический сценарий под `nikita`, используя админский сброс тестового прогресса;
 - юридические темы не считать проверенными без отдельной квалифицированной проверки.
 
 Желательные проверки перед каждым push:
@@ -775,17 +1052,9 @@ npm run lint
 npm run build
 ```
 
-Для QA:
-
-```bash
-cd service
-npm run qa:reset
-npm run dev
-```
-
 Потом вручную пройти:
 
-- login `qa`;
+- login `nikita`;
 - главная;
 - урок;
 - отметка блоков `Готово`;
@@ -794,9 +1063,9 @@ npm run dev
 - прогресс;
 - ачивки;
 - справочник/глоссарий/сценарии;
-- admin под `nikita`.
+- админку, тестовую выдачу ачивок и сброс прогресса.
 
-## 22. Предпочтения пользователя
+## 27. Предпочтения пользователя
 
 Пользователь хочет:
 
@@ -807,14 +1076,14 @@ npm run dev
 - простой login/password;
 - `roman` как ученик;
 - `nikita` как админ;
-- `qa` для тестов;
+- тестовые и административные функции должны быть сосредоточены в аккаунте `nikita`; отдельный `qa` не нужен;
 - SQLite достаточно;
 - ачивки нужны, механику можно развивать постепенно;
 - материалы наполнять через исследовательскую нейронку, потом импортировать в БД;
 - не создавать лишние audit-документы, если короткий вывод можно дать в чате;
 - после каждого крупного шага говорить, какой следующий пункт по плану.
 
-## 23. Рабочий стиль для следующего Codex
+## 28. Рабочий стиль для следующего Codex
 
 Если продолжаешь проект:
 
@@ -828,12 +1097,28 @@ npm run dev
 8. После импорта проверяй, что нет `cite...` и похожих private-use markers.
 9. Если пользователь просит push, делай commit и `git push origin main`.
 
-## 24. Последнее подтверждённое состояние
+## 29. Последнее подтверждённое состояние
 
 На момент обновления этого файла:
 
-- `npm run lint` проходил после форматирования урока 2;
-- `npm run build` проходил после форматирования урока 2;
-- lesson 2 импортирован и визуально проверен;
+- `npm run lint` проходит после импорта уроков 3, 4, 5, 6, 7 и 8;
+- `npm run build` проходит после импорта уроков 3, 4, 5, 6, 7 и 8;
+- lessons 1-8 импортированы в SQLite как полноценные контент-пакеты;
+- extra lessons 9-16 пока сидовые каркасы;
+- в SQLite остаются только `roman` (STUDENT) и `nikita` (ADMIN); `qa` удалён и больше не создаётся seed-скриптом;
+- авторизация не зависит от регистра имени и пароля; актуальный fallback-пароль Романа — `1407`;
+- глобальный поиск работает через `/search` и доступен из общей шапки;
+- справочник и глоссарий переработаны для понятности и использования людьми 50+;
+- форматирование блоков уроков унифицировано, длинные промпты переносятся и не создают горизонтальную прокрутку страницы;
+- текстовые вопросы содержат подсказки о формате ответа без раскрытия правильного ответа;
+- `SORT_STEPS` показывает варианты A, B, C, D и отдельные позиции для ввода/выбора букв;
+- все 11 ачивок получили свои круглые и полноразмерные изображения, анимацию получения и админские кнопки тестовой выдачи;
+- production-сборка и локальный healthcheck на `http://localhost:3100/api/health` проходят;
 - prompts for lessons 4-8 добавлены в `lesson-research-prompts/`;
-- текущая задача пользователя: обновить контекст, добавить промпты 4-8 и запушить всё на GitHub.
+- последние импортированные пакеты:
+  - `lesson-3-task-decomposition.md`;
+  - `lesson-4-citation-control.md`;
+  - `lesson-5-long-documents.md`;
+  - `lesson-6-rf-legal-check.md`;
+  - `lesson-7-agent-roles.md`;
+  - `lesson-8-personal-ai-system.md`.

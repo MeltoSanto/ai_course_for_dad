@@ -1,10 +1,8 @@
 import { Button } from "@heroui/react";
 import {
   BarChart3,
-  Bell,
   BookOpen,
   BrainCircuit,
-  ChevronDown,
   ClipboardCheck,
   Code2,
   Gauge,
@@ -19,9 +17,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { logoutAction } from "@/app/actions/auth";
+import { AchievementUnlockOverlay } from "@/components/achievement-unlock-overlay";
+import { db } from "@/lib/db";
 import type { CurrentUser } from "@/lib/session";
 
 export type CockpitNavKey =
+  | "search"
+  | "progress"
   | "route"
   | "lessons"
   | "practice"
@@ -60,7 +62,7 @@ function initials(displayName: string) {
   return displayName.trim().slice(0, 1).toUpperCase() || "U";
 }
 
-export function CockpitShell({
+export async function CockpitShell({
   active,
   children,
   continueHref = "/",
@@ -71,15 +73,29 @@ export function CockpitShell({
   continueHref?: string;
   user: CurrentUser;
 }) {
+  const latestAchievement = await db.userAchievement.findFirst({
+    where: {
+      userId: user.id,
+      achievement: {
+        isActive: true,
+      },
+    },
+    include: {
+      achievement: true,
+    },
+    orderBy: {
+      awardedAt: "desc",
+    },
+  });
   const visibleNavItems =
     user.role === "ADMIN"
       ? navItems
       : navItems.filter((item) => item.key !== "admin");
 
   return (
-    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <div className="grid min-h-screen lg:grid-cols-[220px_1fr]">
-        <aside className="cockpit-sidebar flex flex-col justify-between px-4 py-5 text-white lg:sticky lg:top-0 lg:h-screen">
+    <main className="min-h-screen min-w-0 max-w-full bg-[var(--background)] text-[var(--foreground)]">
+      <div className="grid min-h-screen min-w-0 grid-cols-[minmax(0,1fr)] lg:grid-cols-[220px_minmax(0,1fr)]">
+        <aside className="cockpit-sidebar flex min-w-0 max-w-full flex-col justify-between px-4 py-5 text-white lg:sticky lg:top-0 lg:h-screen">
           <div>
             <Link className="mb-8 flex items-center gap-3 px-3" href="/">
               <span className="flex size-10 items-center justify-center rounded-xl border border-emerald-300/25 bg-emerald-400/10 text-emerald-300">
@@ -88,7 +104,7 @@ export function CockpitShell({
               <span className="text-base font-bold tracking-normal">AI Учебник</span>
             </Link>
 
-            <nav className="flex gap-2 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible">
+            <nav className="flex w-full min-w-0 max-w-full gap-2 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible">
               {visibleNavItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = active === item.key;
@@ -124,39 +140,51 @@ export function CockpitShell({
         </aside>
 
         <section className="min-w-0">
-          <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[rgba(248,247,242,0.82)] px-5 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
-            <div className="mx-auto flex max-w-[1520px] flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex items-center gap-3">
+          <header className="sticky top-0 z-20 min-w-0 max-w-full border-b border-[var(--line)] bg-[rgba(248,247,242,0.82)] px-5 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
+            <div className="mx-auto flex min-w-0 max-w-[1520px] flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div
+                aria-label={`Текущий пользователь: ${user.displayName}`}
+                className="flex min-w-0 items-center gap-3"
+              >
                 <div className="flex size-10 items-center justify-center rounded-full bg-[var(--signal-green)] text-sm font-bold text-white shadow-[0_10px_24px_rgba(7,108,62,0.22)]">
                   {initials(user.displayName)}
                 </div>
-                <button className="flex items-center gap-2 text-sm font-semibold">
-                  {user.displayName}
-                  <ChevronDown size={16} />
-                </button>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold">{user.displayName}</p>
+                  <p className="text-xs text-[var(--muted)]">
+                    {user.role === "ADMIN" ? "Автор курса" : "Ученик"}
+                  </p>
+                </div>
               </div>
 
-              <label className="flex min-h-12 w-full max-w-2xl items-center gap-3 rounded-xl border border-[var(--line)] bg-white/92 px-4 shadow-[0_12px_30px_rgba(28,35,29,0.04)]">
+              <form
+                action="/search"
+                className="flex min-h-12 w-full min-w-0 max-w-2xl items-center gap-3 rounded-xl border border-[var(--line)] bg-white/92 px-4 text-sm font-semibold text-[var(--muted)] shadow-[0_12px_30px_rgba(28,35,29,0.04)] transition hover:border-[var(--signal-green)] hover:text-[var(--signal-green-strong)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[rgba(7,108,62,0.28)]"
+                method="get"
+              >
                 <Search className="text-[var(--muted)]" size={20} />
                 <input
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--muted)]"
-                  placeholder="Поиск по урокам, темам, справочнику..."
+                  aria-label="Поиск по всему сайту"
+                  className="min-w-0 flex-1 bg-transparent text-base font-semibold text-[var(--foreground)] outline-none placeholder:font-medium placeholder:text-[var(--muted)]"
+                  name="q"
+                  placeholder="Поиск по всему сайту"
                   type="search"
                 />
-                <kbd className="hidden rounded-md border border-[var(--line)] bg-[var(--surface-muted)] px-2 py-1 text-xs text-[var(--muted)] sm:block">
-                  Ctrl K
-                </kbd>
-              </label>
+                <button
+                  className="hidden min-h-9 items-center rounded-lg bg-[var(--surface-muted)] px-3 font-bold text-[var(--signal-green-strong)] transition hover:bg-[#e3f5eb] sm:inline-flex"
+                  type="submit"
+                >
+                  Найти
+                </button>
+              </form>
 
               <div className="flex flex-wrap items-center gap-2">
                 <Link href="/progress">
-                  <Button isIconOnly aria-label="Открыть историю прогресса" variant="outline">
+                  <Button className="font-bold" variant="outline">
                     <BarChart3 size={18} />
+                    Мой прогресс
                   </Button>
                 </Link>
-                <Button isIconOnly aria-label="Уведомления" variant="outline">
-                  <Bell size={18} />
-                </Button>
                 <Link href={continueHref}>
                   <Button
                     className="min-w-40 bg-[var(--signal-green)] font-semibold text-white shadow-[0_14px_30px_rgba(7,108,62,0.24)]"
@@ -175,11 +203,25 @@ export function CockpitShell({
             </div>
           </header>
 
-          <div className="mx-auto max-w-[1520px] px-5 py-5 sm:px-6 lg:px-8">
+          <div className="mx-auto min-w-0 max-w-[1520px] px-5 py-5 sm:px-6 lg:px-8">
             {children}
           </div>
         </section>
       </div>
+      <AchievementUnlockOverlay
+        achievement={
+          latestAchievement
+            ? {
+                awardedAt: latestAchievement.awardedAt.toISOString(),
+                code: latestAchievement.achievement.code,
+                description: latestAchievement.achievement.description,
+                id: latestAchievement.achievement.id,
+                title: latestAchievement.achievement.title,
+              }
+            : null
+        }
+        userId={user.id}
+      />
     </main>
   );
 }

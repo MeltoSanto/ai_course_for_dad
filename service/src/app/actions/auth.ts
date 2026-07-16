@@ -13,26 +13,31 @@ export async function loginAction(
   _previousState: LoginState,
   formData: FormData,
 ): Promise<LoginState> {
-  const username = String(formData.get("username") ?? "")
-    .trim()
-    .toLowerCase();
+  const loginName = String(formData.get("username") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
-  if (!username || !password) {
-    return { error: "Введите логин и пароль." };
+  if (!loginName || !password) {
+    return { error: "Введите имя и пароль." };
   }
 
-  const user = await db.user.findUnique({
-    where: { username },
+  const users = await db.user.findMany({
     select: {
+      displayName: true,
       id: true,
       passwordHash: true,
       role: true,
+      username: true,
     },
   });
+  const normalizedLoginName = loginName.normalize("NFKC").toLocaleLowerCase("ru-RU");
+  const user = users.find(
+    (candidate) =>
+      candidate.username.normalize("NFKC").toLocaleLowerCase("ru-RU") === normalizedLoginName ||
+      candidate.displayName.normalize("NFKC").toLocaleLowerCase("ru-RU") === normalizedLoginName,
+  );
 
   if (!user || !verifyPassword(password, user.passwordHash)) {
-    return { error: "Неверный логин или пароль." };
+    return { error: "Неверное имя или пароль." };
   }
 
   await createSession(user);

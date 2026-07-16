@@ -1,14 +1,17 @@
 import { Chip } from "@heroui/react";
-import { Lock, Sparkles } from "lucide-react";
+import { Lock } from "lucide-react";
+import { AchievementArtwork } from "./achievement-artwork";
 import { formatShortDate } from "./course-utils";
 
 export function AchievementCard({
   awardedAt,
+  code,
   description,
   isUnlocked,
   title,
 }: {
   awardedAt?: Date | null;
+  code: string;
   description: string;
   isUnlocked: boolean;
   title: string;
@@ -22,14 +25,13 @@ export function AchievementCard({
       }`}
     >
       <div className="flex items-start gap-4">
-        <div
-          className={`grid size-14 shrink-0 place-items-center rounded-2xl ${
-            isUnlocked
-              ? "bg-[linear-gradient(135deg,#0a7a48,#064f31)] text-[var(--signal-amber)]"
-              : "bg-white text-[var(--muted)]"
-          }`}
-        >
-          {isUnlocked ? <Sparkles size={24} /> : <Lock size={22} />}
+        <div className="relative size-20 shrink-0 sm:size-24">
+          <AchievementArtwork code={code} isLocked={!isUnlocked} />
+          {!isUnlocked ? (
+            <span className="absolute bottom-0 right-0 grid size-8 place-items-center rounded-full border-2 border-white bg-[var(--sidebar)] text-white shadow-lg">
+              <Lock size={15} />
+            </span>
+          ) : null}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">

@@ -5,18 +5,18 @@ import { RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect } from "react";
 import {
-  resetQaProgressAction,
-  type ResetQaProgressState,
+  resetAdminProgressAction,
+  type ResetAdminProgressState,
 } from "@/app/actions/progress";
 
-const initialState: ResetQaProgressState = {
+const initialState: ResetAdminProgressState = {
   status: "idle",
 };
 
-export function QaResetProgressButton() {
+export function AdminResetProgressButton() {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(
-    resetQaProgressAction,
+    resetAdminProgressAction,
     initialState,
   );
 
@@ -28,7 +28,7 @@ export function QaResetProgressButton() {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     const isConfirmed = window.confirm(
-      "Сбросить весь QA-прогресс? Будут удалены отмеченные блоки, практика, попытки тестов и ачивки только пользователя qa.",
+      "Сбросить весь тестовый прогресс текущего администратора? Будут удалены отмеченные блоки, практика, попытки тестов и полученные ачивки. Материалы курса не изменятся.",
     );
 
     if (!isConfirmed) {
@@ -38,13 +38,9 @@ export function QaResetProgressButton() {
 
   return (
     <form action={formAction} className="mt-4" onSubmit={handleSubmit}>
-      <Button
-        isDisabled={isPending}
-        type="submit"
-        variant="danger"
-      >
+      <Button isDisabled={isPending} type="submit" variant="danger">
         <RotateCcw aria-hidden="true" size={16} />
-        {isPending ? "Сбрасываю..." : "Сбросить QA-прогресс"}
+        {isPending ? "Сбрасываю..." : "Сбросить тестовый прогресс"}
       </Button>
       {state.message ? (
         <p

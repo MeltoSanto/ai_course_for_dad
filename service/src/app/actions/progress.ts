@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { refreshLessonProgress } from "@/lib/progress";
-import { requireUser } from "@/lib/session";
+import { requireAdmin, requireUser } from "@/lib/session";
 
-export type ResetQaProgressState = {
+export type ResetAdminProgressState = {
   status: "idle" | "error" | "success";
   message?: string;
 };
@@ -108,15 +108,8 @@ export async function completeBlockAction(
   };
 }
 
-export async function resetQaProgressAction(): Promise<ResetQaProgressState> {
-  const user = await requireUser();
-
-  if (user.username !== "qa") {
-    return {
-      status: "error",
-      message: "Сброс прогресса доступен только QA-пользователю.",
-    };
-  }
+export async function resetAdminProgressAction(): Promise<ResetAdminProgressState> {
+  const user = await requireAdmin();
 
   await db.$transaction([
     db.userLessonProgress.deleteMany({
@@ -155,6 +148,6 @@ export async function resetQaProgressAction(): Promise<ResetQaProgressState> {
 
   return {
     status: "success",
-    message: "QA-прогресс сброшен. Можно начинать проверку с чистого состояния.",
+    message: "Тестовый прогресс администратора сброшен. Можно начинать проверку с чистого состояния.",
   };
 }

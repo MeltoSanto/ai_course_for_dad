@@ -3,12 +3,13 @@ import { AssignmentStatus } from "@prisma/client";
 import { Award, CheckCircle2, ClipboardCheck, History, Trophy } from "lucide-react";
 import Link from "next/link";
 import { CockpitShell } from "@/components/cockpit-shell";
+import { AchievementArtwork } from "@/components/course/achievement-artwork";
 import {
   ProgressDonut,
   TimelineRail,
   type TimelineStep,
 } from "@/components/cockpit-ui";
-import { QaResetProgressButton } from "@/app/progress/qa-reset-progress-button";
+import { AdminResetProgressButton } from "@/app/progress/admin-reset-progress-button";
 import {
   getStudentProgressCenter,
   kindLabels,
@@ -71,7 +72,7 @@ export default async function ProgressPage() {
   }));
 
   return (
-    <CockpitShell active="route" continueHref={continueHref} user={user}>
+    <CockpitShell active="progress" continueHref={continueHref} user={user}>
       <div className="tech-canvas -mx-5 -my-5 min-h-[calc(100vh-84px)] px-5 py-5 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <section className="cockpit-panel p-5 sm:p-7">
           <div className="grid gap-6 lg:grid-cols-[1fr_360px] lg:items-center">
@@ -96,17 +97,17 @@ export default async function ProgressPage() {
                   <Button variant="primary">Продолжить обучение</Button>
                 </Link>
               </div>
-              {user.username === "qa" ? (
+              {user.role === "ADMIN" ? (
                 <div className="mt-5 max-w-xl rounded-xl border border-red-200 bg-red-50/80 p-4">
                   <p className="text-xs font-bold uppercase tracking-normal text-red-700">
-                    QA-режим
+                    Режим администратора
                   </p>
                   <p className="mt-2 text-sm leading-6 text-red-900">
-                    Сброс возвращает тестового ученика в стартовую точку:
-                    удаляет отмеченные блоки, практику, попытки тестов и ачивки
-                    только для пользователя `qa`.
+                    Сброс возвращает текущий аккаунт администратора в стартовую точку:
+                    удаляет отмеченные блоки, практику, попытки тестов и ачивки.
+                    Материалы и настройки курса остаются без изменений.
                   </p>
-                  <QaResetProgressButton />
+                  <AdminResetProgressButton />
                 </div>
               ) : null}
             </div>
@@ -296,18 +297,27 @@ export default async function ProgressPage() {
                     }`}
                     key={achievement.id}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="font-bold">{achievement.title}</p>
-                      <Chip
-                        variant="soft"
-                        color={achievement.isUnlocked ? "success" : "default"}
-                      >
-                        {achievement.isUnlocked ? "Открыта" : "Закрыта"}
-                      </Chip>
+                    <div className="flex items-start gap-3">
+                      <AchievementArtwork
+                        className="size-16 shrink-0"
+                        code={achievement.code}
+                        isLocked={!achievement.isUnlocked}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <p className="font-bold">{achievement.title}</p>
+                          <Chip
+                            variant="soft"
+                            color={achievement.isUnlocked ? "success" : "default"}
+                          >
+                            {achievement.isUnlocked ? "Открыта" : "Закрыта"}
+                          </Chip>
+                        </div>
+                        <p className="mt-2 text-sm leading-5 text-[var(--muted)]">
+                          {achievement.description}
+                        </p>
+                      </div>
                     </div>
-                    <p className="mt-2 text-sm leading-5 text-[var(--muted)]">
-                      {achievement.description}
-                    </p>
                   </div>
                 ))}
               </div>

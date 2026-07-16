@@ -559,6 +559,7 @@ function revalidateLibraryAdmin() {
   revalidatePath("/glossary");
   revalidatePath("/scenarios");
   revalidatePath("/progress");
+  revalidatePath("/achievements");
   revalidatePath("/");
 }
 
@@ -831,6 +832,48 @@ export async function updateAchievementAction(
         AchievementTriggerType.MANUAL,
       ),
       isActive: checkbox(formData, "isActive"),
+    },
+  });
+
+  revalidateLibraryAdmin();
+}
+
+export async function grantAchievementToCurrentAdminAction(
+  achievementId: string,
+  _formData: FormData,
+) {
+  void _formData;
+  const user = await requireAdmin();
+  const achievement = await db.achievement.findUnique({
+    where: {
+      id: achievementId,
+    },
+    select: {
+      id: true,
+      isActive: true,
+    },
+  });
+
+  if (!achievement?.isActive) {
+    return;
+  }
+
+  const awardedAt = new Date();
+
+  await db.userAchievement.upsert({
+    where: {
+      userId_achievementId: {
+        achievementId: achievement.id,
+        userId: user.id,
+      },
+    },
+    update: {
+      awardedAt,
+    },
+    create: {
+      achievementId: achievement.id,
+      awardedAt,
+      userId: user.id,
     },
   });
 

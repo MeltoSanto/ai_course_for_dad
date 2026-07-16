@@ -21,6 +21,11 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  buildSortQuestionModel,
+  normalizeSortSelection,
+  type SortQuestionModel,
+} from "@/lib/sort-question";
 
 type QuestionType =
   | "SINGLE_CHOICE"
@@ -76,6 +81,9 @@ const questionTypeLabels: Record<QuestionType, string> = {
   FILL_BLANK: "Вставить правильное слово",
 };
 
+const promptErrorPlaceholder = "Проблема: …\nКак исправить: …";
+const fillBlankPlaceholder = "Только пропущенное слово или короткая фраза";
+
 function parseStoredAnswers(answers: TestAttempt["answers"] | undefined) {
   if (!answers) {
     return [];
@@ -120,6 +128,90 @@ function testPercent(score: number, maxScore: number) {
 
 function formatAttemptDate(value: string) {
   return new Date(value).toLocaleString("ru-RU");
+}
+
+function SortStepsFields({
+  model,
+  questionId,
+  storedAnswer,
+}: {
+  model: SortQuestionModel;
+  questionId: string;
+  storedAnswer: StoredAnswer | undefined;
+}) {
+  const [selection, setSelection] = useState(() => {
+    const storedSelection = normalizeSortSelection(
+      storedAnswer?.answer ?? "",
+      model,
+    );
+
+    return model.variants.map((_, index) => storedSelection[index] ?? "");
+  });
+
+  function updatePosition(index: number, value: string) {
+    setSelection((current) =>
+      current.map((item, itemIndex) => (itemIndex === index ? value : item)),
+    );
+  }
+
+  return (
+    <div className="mt-3">
+      <div className="test-sort-variants">
+        <p className="text-sm font-bold text-[var(--foreground)]">
+          Варианты ответа
+        </p>
+        <div className="mt-2 grid gap-2">
+          {model.variants.map((variant) => (
+            <div className="test-sort-variant" key={variant.key}>
+              <span className="test-sort-letter" aria-hidden="true">
+                {variant.key}
+              </span>
+              <span>{variant.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <p className="text-sm font-bold text-[var(--foreground)]">
+          Укажите правильный порядок
+        </p>
+        <p className="mt-1 text-xs font-medium text-[var(--muted)]">
+          Для каждой позиции выберите одну букву. Каждую букву можно использовать
+          только один раз.
+        </p>
+        <div className="test-sort-slots mt-3">
+          {model.variants.map((_, index) => (
+            <label className="test-sort-slot" key={index}>
+              <span className="test-sort-position">{index + 1}</span>
+              <span className="sr-only">Позиция {index + 1}</span>
+              <select
+                aria-label={`Буква для позиции ${index + 1}`}
+                className="test-sort-select"
+                name={`question_${questionId}`}
+                onChange={(event) => updatePosition(index, event.target.value)}
+                value={selection[index]}
+              >
+                <option value="">Выберите букву</option>
+                {model.variants.map((variant) => (
+                  <option
+                    disabled={selection.some(
+                      (selectedKey, selectedIndex) =>
+                        selectedIndex !== index && selectedKey === variant.key,
+                    )}
+                    key={variant.key}
+                    value={variant.key}
+                  >
+                    {variant.key}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
@@ -283,6 +375,13 @@ export function TestForm({
           const selectedValues = storedAnswerValues(storedAnswer);
           const isMissing = missingQuestionIds.has(question.id);
           const isAnswered = Boolean(storedAnswer);
+          const sortModel =
+            question.type === "SORT_STEPS"
+              ? buildSortQuestionModel({
+                  correctOrder: question.correctOrder,
+                  prompt: question.prompt,
+                })
+              : null;
 
           return (
             <fieldset
@@ -294,7 +393,7 @@ export function TestForm({
               key={question.id}
             >
               <legend className="test-question-legend">
-                {index + 1}. {question.prompt}
+                {index + 1}. {sortModel?.instruction ?? question.prompt}
               </legend>
 
               <div
@@ -351,27 +450,25 @@ export function TestForm({
               ) : null}
 
               {question.type === "SORT_STEPS" ? (
+                <SortStepsFields
+                  model={sortModel!}
+                  questionId={question.id}
+                  storedAnswer={storedAnswer}
+                />
+              ) : null}
+
+              {question.type === "FIND_PROMPT_ERROR" ? (
                 <label className="mt-3 block text-sm font-semibold">
-                  Ответ по строкам в правильном порядке
+                  Что именно не так
                   <span className="mt-1 block text-xs font-medium text-[var(--muted)]">
-                    Каждый шаг пишите с новой строки. Номера можно ставить или не
-                    ставить.
+                    Назовите конкретную проблему. При желании кратко укажите,
+                    как изменить инструкцию.
                   </span>
                   <textarea
                     className="test-textarea"
                     defaultValue={storedAnswerText(storedAnswer)}
                     name={`question_${question.id}`}
-                  />
-                </label>
-              ) : null}
-
-              {question.type === "FIND_PROMPT_ERROR" ? (
-                <label className="mt-3 block text-sm font-semibold">
-                  Найденная ошибка и исправление
-                  <textarea
-                    className="test-textarea"
-                    defaultValue={storedAnswerText(storedAnswer)}
-                    name={`question_${question.id}`}
+                    placeholder={promptErrorPlaceholder}
                   />
                 </label>
               ) : null}
@@ -383,6 +480,7 @@ export function TestForm({
                     className="test-input"
                     defaultValue={storedAnswerText(storedAnswer)}
                     name={`question_${question.id}`}
+                    placeholder={fillBlankPlaceholder}
                   />
                 </label>
               ) : null}

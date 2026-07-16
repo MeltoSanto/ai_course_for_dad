@@ -6,6 +6,7 @@ import {
   createGlossaryTermAction,
   createReferenceItemAction,
   createScenarioAction,
+  grantAchievementToCurrentAdminAction,
   updateAchievementAction,
   updateGlossaryTermAction,
   updateReferenceItemAction,
@@ -13,6 +14,7 @@ import {
 } from "@/app/admin/actions";
 import { logoutAction } from "@/app/actions/auth";
 import { CockpitShell } from "@/components/cockpit-shell";
+import { AchievementArtwork } from "@/components/course/achievement-artwork";
 import { getAdminLibraryEditor, statusLabels } from "@/lib/course";
 import { requireAdmin } from "@/lib/session";
 
@@ -494,6 +496,19 @@ export default async function AdminLibraryPage() {
                   className="rounded-md border border-black/10 bg-white p-4"
                   key={achievement.id}
                 >
+                  <div className="mb-4 flex items-center gap-3">
+                    <AchievementArtwork
+                      className="size-20 shrink-0"
+                      code={achievement.code}
+                      isLocked={!achievement.isActive}
+                    />
+                    <div>
+                      <p className="font-bold">Предпросмотр награды</p>
+                      <p className="mt-1 text-sm text-[var(--muted)]">
+                        Эту миниатюру видит ученик в списке достижений.
+                      </p>
+                    </div>
+                  </div>
                   <div className="grid gap-3 md:grid-cols-[1fr_200px_180px_120px]">
                     <label className="text-sm font-medium">
                       Название
@@ -547,9 +562,22 @@ export default async function AdminLibraryPage() {
                         Выдана: {achievement._count.users}
                       </Chip>
                     </div>
-                    <Button type="submit" variant="secondary">
-                      Сохранить
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        formAction={grantAchievementToCurrentAdminAction.bind(
+                          null,
+                          achievement.id,
+                        )}
+                        isDisabled={!achievement.isActive}
+                        type="submit"
+                        variant="primary"
+                      >
+                        Получить и показать
+                      </Button>
+                      <Button type="submit" variant="secondary">
+                        Сохранить
+                      </Button>
+                    </div>
                   </div>
                 </form>
               ))}
