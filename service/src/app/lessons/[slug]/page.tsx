@@ -2,6 +2,7 @@ import { Button } from "@heroui/react/button";
 import { Chip } from "@heroui/react/chip";
 import {
   AssignmentStatus,
+  LessonKind,
   ProgressStatus,
 } from "@prisma/client";
 import {
@@ -10,6 +11,7 @@ import {
   ClipboardCheck,
   Clock3,
   ListChecks,
+  LockKeyhole,
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -57,8 +59,74 @@ export default async function LessonPage({ params }: LessonPageProps) {
     notFound();
   }
 
-  const { lesson, progress, completedBlockIds, previousLesson, nextLesson } =
-    workspace;
+  const {
+    lesson,
+    progress,
+    completedBlockIds,
+    previousLesson,
+    nextLesson,
+    coreCourseCompleted,
+    isContentReady,
+  } = workspace;
+
+  if (
+    lesson.kind === LessonKind.EXTRA &&
+    (!coreCourseCompleted || !isContentReady)
+  ) {
+    const isWaitingForCore = !coreCourseCompleted;
+
+    return (
+      <CockpitShell active="lessons" continueHref="/lessons" user={user}>
+        <div className="tech-canvas -mx-5 -my-5 min-h-[calc(100vh-84px)] px-5 py-5 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+          <section className="cockpit-panel p-5 sm:p-7">
+            <Link
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--signal-green)]"
+              href="/lessons"
+            >
+              <ChevronLeft aria-hidden="true" size={16} />
+              Ко всем урокам
+            </Link>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Chip variant="soft" color="warning">
+                Дополнительный урок
+              </Chip>
+              <Chip variant="soft" color="default">
+                После основного курса
+              </Chip>
+            </div>
+            <h1 className="mt-4 max-w-4xl text-3xl font-bold leading-tight sm:text-5xl">
+              {lesson.title}
+            </h1>
+          </section>
+
+          <section className="cockpit-panel mt-5 grid min-h-80 place-items-center p-6 text-center sm:p-10">
+            <div className="max-w-xl">
+              <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-amber-50 text-[var(--signal-amber)]">
+                <LockKeyhole aria-hidden="true" size={28} />
+              </span>
+              <h2 className="mt-5 text-2xl font-bold">
+                {isWaitingForCore
+                  ? "Сперва необходимо пройти основной курс"
+                  : "Материал дополнительного урока готовится"}
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                {isWaitingForCore
+                  ? "Дополнительные темы опираются на навыки из восьми основных уроков. После завершения основного маршрута здесь появится доступ к готовым материалам."
+                  : "Мы скрыли пустые блоки и технические заглушки. Урок откроется, когда в нём появятся полноценные материалы, практика и проверка."}
+              </p>
+              <Link className="mt-6 inline-block" href="/lessons">
+                <Button variant="primary">
+                  Вернуться к основным урокам
+                  <ChevronRight aria-hidden="true" size={16} />
+                </Button>
+              </Link>
+            </div>
+          </section>
+        </div>
+      </CockpitShell>
+    );
+  }
+
   const percent = progress?.percent ?? 0;
   const firstIncompleteBlock = lesson.blocks.find(
     (block) => !completedBlockIds.has(block.id),

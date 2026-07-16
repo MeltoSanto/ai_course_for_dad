@@ -36,6 +36,25 @@ const lessonKindRank: Record<LessonKind, number> = {
   EXTRA: 1,
 };
 
+const placeholderBlockMarker =
+  "Этот блок будет наполнен исследовательской моделью";
+
+function lessonHasReadyContent(lesson: {
+  kind: LessonKind;
+  blocks: Array<{ contentMd: string }>;
+}) {
+  if (lesson.kind === LessonKind.CORE) {
+    return true;
+  }
+
+  return (
+    lesson.blocks.length > 0 &&
+    lesson.blocks.every(
+      (block) => !block.contentMd.includes(placeholderBlockMarker),
+    )
+  );
+}
+
 export async function getStudentDashboard(userId: string) {
   const [
     lessons,
@@ -63,6 +82,7 @@ export async function getStudentDashboard(userId: string) {
             select: {
               id: true,
               title: true,
+              contentMd: true,
               blockProgresses: {
                 where: {
                   userId,
@@ -185,6 +205,7 @@ export async function getStudentDashboard(userId: string) {
       blockCount: lesson.blocks.length,
       assignmentCount: lesson.assignments.length,
       testCount: lesson.tests.length,
+      isContentReady: lessonHasReadyContent(lesson),
       progress: {
         status: progress?.status ?? ProgressStatus.NOT_STARTED,
         percent: progress?.percent ?? 0,
@@ -205,9 +226,16 @@ export async function getStudentDashboard(userId: string) {
   const completedCoreCount = coreLessons.filter(
     (lesson) => lesson.progress.status === ProgressStatus.COMPLETED,
   ).length;
+  const coreCourseCompleted =
+    coreLessons.length > 0 && completedCoreCount >= coreLessons.length;
   const coursePercent = average(coreLessons.map((lesson) => lesson.progress.percent));
+  const availableLessons = dashboardLessons.filter(
+    (lesson) =>
+      lesson.kind === LessonKind.CORE ||
+      (coreCourseCompleted && lesson.isContentReady),
+  );
   const continueLesson =
-    dashboardLessons
+    availableLessons
       .filter((lesson) => lesson.progress.lastVisitedAt)
       .sort(
         (left, right) =>
@@ -222,6 +250,7 @@ export async function getStudentDashboard(userId: string) {
     coreLessons,
     extraLessons,
     completedCoreCount,
+    coreCourseCompleted,
     coursePercent,
     continueLesson,
     achievements,
@@ -312,7 +341,13 @@ export async function getLessonWorkspace(userId: string, slug: string) {
     return null;
   }
 
-  const [blockProgresses, previousLesson, nextLesson] = await Promise.all([
+  const [
+    blockProgresses,
+    previousLesson,
+    nextLesson,
+    coreLessonCount,
+    completedCoreLessonCount,
+  ] = await Promise.all([
     db.userBlockProgress.findMany({
       where: {
         userId,
@@ -361,6 +396,26 @@ export async function getLessonWorkspace(userId: string, slug: string) {
         order: true,
       },
     }),
+    db.lesson.count({
+      where: {
+        kind: LessonKind.CORE,
+        status: {
+          not: PublicationStatus.ARCHIVED,
+        },
+      },
+    }),
+    db.userLessonProgress.count({
+      where: {
+        userId,
+        status: ProgressStatus.COMPLETED,
+        lesson: {
+          kind: LessonKind.CORE,
+          status: {
+            not: PublicationStatus.ARCHIVED,
+          },
+        },
+      },
+    }),
   ]);
 
   return {
@@ -368,6 +423,9 @@ export async function getLessonWorkspace(userId: string, slug: string) {
     progress: lesson.progresses[0],
     previousLesson,
     nextLesson,
+    isContentReady: lessonHasReadyContent(lesson),
+    coreCourseCompleted:
+      coreLessonCount > 0 && completedCoreLessonCount >= coreLessonCount,
     completedBlockIds: new Set(
       blockProgresses
         .filter((progress) => progress.completedAt)

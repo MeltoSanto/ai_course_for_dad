@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CockpitShell } from "@/components/cockpit-shell";
 import { CourseRouteMap } from "@/components/course/course-route-map";
 import { lessonHref } from "@/components/course/course-utils";
+import { ExtraLessonCard } from "@/components/course/extra-lesson-card";
 import { LessonCard } from "@/components/course/lesson-card";
 import { getStudentDashboard } from "@/lib/course";
 import { requireUser } from "@/lib/session";
@@ -80,7 +81,11 @@ export default async function LessonsPage() {
               <div className="grid gap-3">
                 {dashboard.extraLessons.length > 0 ? (
                   dashboard.extraLessons.map((lesson) => (
-                    <LessonCard key={lesson.id} lesson={lesson} />
+                    <ExtraLessonCard
+                      coreCourseCompleted={dashboard.coreCourseCompleted}
+                      key={lesson.id}
+                      lesson={lesson}
+                    />
                   ))
                 ) : (
                   <p className="rounded-xl border border-dashed border-[var(--line-strong)] bg-white/60 p-4 text-sm leading-6 text-[var(--muted)]">
