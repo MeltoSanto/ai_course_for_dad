@@ -546,31 +546,42 @@ async function importPackage(prisma, lessonPackage) {
 async function main() {
   loadDotEnv();
 
-  const inputPath = resolve(process.cwd(), process.argv[2] ?? defaultPackagePath);
+  const requestedPaths = process.argv.slice(2);
+  const inputPaths = (requestedPaths.length > 0 ? requestedPaths : [defaultPackagePath]).map(
+    (inputPath) => resolve(process.cwd(), inputPath),
+  );
 
-  if (!existsSync(inputPath)) {
-    throw new Error(`Lesson package not found: ${inputPath}`);
+  for (const inputPath of inputPaths) {
+    if (!existsSync(inputPath)) {
+      throw new Error(`Lesson package not found: ${inputPath}`);
+    }
   }
 
-  const markdown = readFileSync(inputPath, "utf8");
-  const lessonPackage = parsePackage(markdown);
+  const lessonPackages = inputPaths.map((inputPath) =>
+    parsePackage(readFileSync(inputPath, "utf8")),
+  );
   const prisma = new PrismaClient();
 
   try {
-    await importPackage(prisma, lessonPackage);
+    for (const lessonPackage of lessonPackages) {
+      await importPackage(prisma, lessonPackage);
+
+      const maxScore = lessonPackage.test.questions.reduce(
+        (sum, question) => sum + question.points,
+        0,
+      );
+
+      console.log(`Imported lesson: ${lessonPackage.lesson.slug}`);
+      console.log(`Blocks: ${lessonPackage.blocks.length}`);
+      console.log(`Assignment: 1`);
+      console.log(`Questions: ${lessonPackage.test.questions.length}, max score: ${maxScore}`);
+      console.log(`Glossary terms: ${lessonPackage.glossaryItems.length}`);
+      console.log(`Reference items: ${lessonPackage.referenceItems.length}`);
+      console.log(`Scenario: ${lessonPackage.scenario.slug}`);
+    }
   } finally {
     await prisma.$disconnect();
   }
-
-  const maxScore = lessonPackage.test.questions.reduce((sum, question) => sum + question.points, 0);
-
-  console.log(`Imported lesson: ${lessonPackage.lesson.slug}`);
-  console.log(`Blocks: ${lessonPackage.blocks.length}`);
-  console.log(`Assignment: 1`);
-  console.log(`Questions: ${lessonPackage.test.questions.length}, max score: ${maxScore}`);
-  console.log(`Glossary terms: ${lessonPackage.glossaryItems.length}`);
-  console.log(`Reference items: ${lessonPackage.referenceItems.length}`);
-  console.log(`Scenario: ${lessonPackage.scenario.slug}`);
 }
 
 main().catch((error) => {

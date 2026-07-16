@@ -25,9 +25,7 @@ export function ProgressDonut({
   value: number;
 }) {
   const percent = clampPercent(value);
-  const inProgress = percent >= 100 ? 0 : Math.min(22, 100 - percent);
-  const inProgressEnd = Math.min(100, percent + inProgress);
-  const remaining = Math.max(0, 100 - percent - inProgress);
+  const remaining = Math.max(0, 100 - percent);
 
   return (
     <div className="flex items-center gap-5">
@@ -36,7 +34,7 @@ export function ProgressDonut({
         className="relative grid size-36 place-items-center rounded-full"
         role="img"
         style={{
-          background: `conic-gradient(var(--signal-green) 0 ${percent}%, var(--signal-amber) ${percent}% ${inProgressEnd}%, #dedbd2 ${inProgressEnd}% 100%)`,
+          background: `conic-gradient(var(--signal-green) 0 ${percent}%, #dedbd2 ${percent}% 100%)`,
         }}
       >
         <div className="grid size-[104px] place-items-center rounded-full bg-white text-center shadow-inner">
@@ -49,13 +47,8 @@ export function ProgressDonut({
       <div className="grid gap-3 text-sm">
         <div className="flex items-center gap-2">
           <span className="size-2.5 rounded-full bg-[var(--signal-green)]" />
-          <span className="text-[var(--muted)]">Пройдено</span>
+          <span className="text-[var(--muted)]">Выполнено</span>
           <strong>{percent}%</strong>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="size-2.5 rounded-full bg-[var(--signal-amber)]" />
-          <span className="text-[var(--muted)]">В процессе</span>
-          <strong>{inProgress}%</strong>
         </div>
         <div className="flex items-center gap-2">
           <span className="size-2.5 rounded-full bg-[#d7d3c8]" />
