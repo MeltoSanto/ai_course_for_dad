@@ -282,8 +282,8 @@ export default async function ProgressPage() {
             </section>
           </div>
 
-          <aside className="grid content-start gap-4">
-            <section className="cockpit-panel p-5">
+          <aside className="grid min-w-0 content-start gap-4">
+            <section className="cockpit-panel min-w-0 overflow-hidden p-5">
               <div className="mb-4 flex items-center gap-2">
                 <Award className="text-[var(--signal-amber)]" size={22} />
                 <h2 className="text-xl font-bold">Ачивки</h2>
@@ -291,7 +291,7 @@ export default async function ProgressPage() {
               <div className="grid gap-3">
                 {progress.achievementCatalog.map((achievement) => (
                   <div
-                    className={`rounded-xl border p-4 ${
+                    className={`min-w-0 overflow-hidden rounded-xl border p-3 ${
                       achievement.isUnlocked
                         ? "border-[var(--signal-green)] bg-white"
                         : "border-[var(--line)] bg-[var(--surface-muted)] opacity-75"
@@ -299,14 +299,17 @@ export default async function ProgressPage() {
                     key={achievement.id}
                   >
                     <div className="flex items-start gap-3">
-                      <AchievementArtwork
-                        className="size-16 shrink-0"
-                        code={achievement.code}
-                        isLocked={!achievement.isUnlocked}
-                      />
+                      <div className="size-14 shrink-0 overflow-hidden rounded-full">
+                        <AchievementArtwork
+                          code={achievement.code}
+                          isLocked={!achievement.isUnlocked}
+                        />
+                      </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <p className="font-bold">{achievement.title}</p>
+                        <p className="break-words text-sm font-bold leading-5">
+                          {achievement.title}
+                        </p>
+                        <div className="mt-2">
                           <Chip
                             variant="soft"
                             color={achievement.isUnlocked ? "success" : "default"}
@@ -314,7 +317,7 @@ export default async function ProgressPage() {
                             {achievement.isUnlocked ? "Открыта" : "Закрыта"}
                           </Chip>
                         </div>
-                        <p className="mt-2 text-sm leading-5 text-[var(--muted)]">
+                        <p className="mt-2 line-clamp-2 break-words text-xs leading-5 text-[var(--muted)]">
                           {achievement.description}
                         </p>
                       </div>
