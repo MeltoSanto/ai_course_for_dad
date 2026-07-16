@@ -6,9 +6,11 @@ import {
   LessonKind,
   PublicationStatus,
   QuestionType,
+  UserRole,
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { achievementCodesForLessonReset } from "@/lib/achievements";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 
@@ -878,4 +880,180 @@ export async function grantAchievementToCurrentAdminAction(
   });
 
   revalidateLibraryAdmin();
+}
+
+export type AdminProgressResetState = {
+  status: "idle" | "error" | "success";
+  message?: string;
+};
+
+function revalidateProgressPages(lessonSlug?: string) {
+  revalidatePath("/admin");
+  revalidatePath("/admin/progress");
+  revalidatePath("/");
+  revalidatePath("/lessons");
+  revalidatePath("/progress");
+  revalidatePath("/practice");
+  revalidatePath("/tests");
+  revalidatePath("/achievements");
+
+  if (lessonSlug) {
+    revalidatePath(`/lessons/${lessonSlug}`);
+  }
+}
+
+export async function resetStudentProgressAction(
+  _previousState: AdminProgressResetState,
+  formData: FormData,
+): Promise<AdminProgressResetState> {
+  void _previousState;
+  await requireAdmin();
+
+  const targetUserId = text(formData, "targetUserId");
+  const lessonId = text(formData, "lessonId");
+
+  if (!targetUserId || !lessonId) {
+    return {
+      status: "error",
+      message: "Выберите ученика и область сброса.",
+    };
+  }
+
+  const students = await db.user.findMany({
+    where:
+      targetUserId === "all"
+        ? { role: UserRole.STUDENT }
+        : { id: targetUserId, role: UserRole.STUDENT },
+    select: {
+      id: true,
+      displayName: true,
+      username: true,
+    },
+  });
+
+  if (students.length === 0) {
+    return {
+      status: "error",
+      message: "Ученик не найден или уже удалён.",
+    };
+  }
+
+  const userIds = students.map((student) => student.id);
+  const targetLabel =
+    targetUserId === "all"
+      ? `все ученики (${students.length})`
+      : `${students[0].displayName} (${students[0].username})`;
+
+  if (lessonId === "all") {
+    await db.$transaction([
+      db.userLessonProgress.deleteMany({
+        where: { userId: { in: userIds } },
+      }),
+      db.userBlockProgress.deleteMany({
+        where: { userId: { in: userIds } },
+      }),
+      db.userAssignmentProgress.deleteMany({
+        where: { userId: { in: userIds } },
+      }),
+      db.userTestAttempt.deleteMany({
+        where: { userId: { in: userIds } },
+      }),
+      db.userAchievement.deleteMany({
+        where: { userId: { in: userIds } },
+      }),
+    ]);
+
+    revalidateProgressPages();
+
+    return {
+      status: "success",
+      message: `Весь прогресс сброшен: ${targetLabel}.`,
+    };
+  }
+
+  const lesson = await db.lesson.findUnique({
+    where: { id: lessonId },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      kind: true,
+    },
+  });
+
+  if (!lesson) {
+    return {
+      status: "error",
+      message: "Урок не найден или уже удалён.",
+    };
+  }
+
+  const achievementCodes = achievementCodesForLessonReset(lesson.slug);
+
+  if (lesson.kind === LessonKind.CORE) {
+    achievementCodes.push("course-finish", "practice-track");
+  }
+
+  await db.$transaction([
+    db.userLessonProgress.deleteMany({
+      where: {
+        userId: { in: userIds },
+        lessonId: lesson.id,
+      },
+    }),
+    db.userBlockProgress.deleteMany({
+      where: {
+        userId: { in: userIds },
+        block: { lessonId: lesson.id },
+      },
+    }),
+    db.userAssignmentProgress.deleteMany({
+      where: {
+        userId: { in: userIds },
+        assignment: { lessonId: lesson.id },
+      },
+    }),
+    db.userTestAttempt.deleteMany({
+      where: {
+        userId: { in: userIds },
+        test: { lessonId: lesson.id },
+      },
+    }),
+    db.userAchievement.deleteMany({
+      where: {
+        userId: { in: userIds },
+        achievement: {
+          code: { in: [...new Set(achievementCodes)] },
+        },
+      },
+    }),
+  ]);
+
+  const usersWithTestAttempts = await db.userTestAttempt.findMany({
+    where: {
+      userId: { in: userIds },
+    },
+    distinct: ["userId"],
+    select: {
+      userId: true,
+    },
+  });
+  const usersWithTests = new Set(usersWithTestAttempts.map((attempt) => attempt.userId));
+  const usersWithoutTests = userIds.filter((userId) => !usersWithTests.has(userId));
+
+  if (usersWithoutTests.length > 0) {
+    await db.userAchievement.deleteMany({
+      where: {
+        userId: { in: usersWithoutTests },
+        achievement: { code: "first-test" },
+      },
+    });
+  }
+
+  revalidateProgressPages(lesson.slug);
+
+  return {
+    status: "success",
+    message: `Прогресс урока «${lesson.title}» сброшен: ${targetLabel}.`,
+  };
 }

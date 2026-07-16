@@ -23,6 +23,14 @@ const testAchievements: Record<string, string> = {
   "rf-legal-check": "jurisdiction-control",
 };
 
+export function achievementCodesForLessonReset(slug: string) {
+  return [
+    lessonAchievements[slug],
+    practiceAchievements[slug],
+    testAchievements[slug],
+  ].filter((code): code is string => Boolean(code));
+}
+
 export async function awardAchievementByCode(userId: string, code: string) {
   const achievement = await db.achievement.findFirst({
     where: {

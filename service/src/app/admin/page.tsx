@@ -8,6 +8,7 @@ import {
   Library,
   Pencil,
   Trophy,
+  UsersRound,
 } from "lucide-react";
 import Link from "next/link";
 import { createLessonAction } from "@/app/admin/actions";
@@ -25,6 +26,7 @@ const adminSections = [
   ["Глоссарий", "GlossaryTerm", "/admin/library#glossary", ClipboardList],
   ["Сценарии", "Scenario", "/admin/library#scenarios", Boxes],
   ["Ачивки", "Achievement", "/admin/library#achievements", Trophy],
+  ["Прогресс учеников", "Сброс по ученику и уроку", "/admin/progress", UsersRound],
 ] as const;
 
 export default async function AdminPage() {

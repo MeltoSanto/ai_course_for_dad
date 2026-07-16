@@ -446,6 +446,51 @@ export async function getAdminDashboard() {
   };
 }
 
+export async function getAdminProgressManager() {
+  const [students, lessons] = await Promise.all([
+    db.user.findMany({
+      where: {
+        role: "STUDENT",
+      },
+      orderBy: [{ displayName: "asc" }, { username: "asc" }],
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        _count: {
+          select: {
+            lessonProgresses: true,
+            blockProgresses: true,
+            assignmentProgresses: true,
+            testAttempts: true,
+            achievements: true,
+          },
+        },
+      },
+    }),
+    db.lesson.findMany({
+      where: {
+        status: {
+          not: PublicationStatus.ARCHIVED,
+        },
+      },
+      orderBy: [{ kind: "asc" }, { order: "asc" }],
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        kind: true,
+        order: true,
+      },
+    }),
+  ]);
+
+  return {
+    students,
+    lessons,
+  };
+}
+
 export async function getAdminLessonEditor(lessonId: string) {
   return db.lesson.findUnique({
     where: {
