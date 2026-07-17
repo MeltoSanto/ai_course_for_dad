@@ -162,21 +162,28 @@ function parseBlock(section, order) {
 }
 
 function parseOptions(optionsMd, context) {
-  const options = optionsMd
-    .split(/\r?\n/)
-    .map((line) => {
-      const match = line.match(/^-\s+\[(x|X| )\]\s+(.+)$/);
+  const options = [];
+  let currentOption = null;
 
-      if (!match) {
-        return null;
-      }
+  for (const line of optionsMd.split(/\r?\n/)) {
+    const optionMatch = line.match(/^-\s+\[(x|X| )\]\s+(.+)$/);
 
-      return {
-        text: clean(match[2]),
-        isCorrect: match[1].toLowerCase() === "x",
+    if (optionMatch) {
+      currentOption = {
+        text: clean(optionMatch[2]),
+        isCorrect: optionMatch[1].toLowerCase() === "x",
+        feedback: null,
       };
-    })
-    .filter(Boolean);
+      options.push(currentOption);
+      continue;
+    }
+
+    const feedbackMatch = line.match(/^\s+feedback:\s*(.+)$/);
+
+    if (feedbackMatch && currentOption) {
+      currentOption.feedback = clean(feedbackMatch[1]);
+    }
+  }
 
   if (options.length === 0) {
     throw new Error(`Missing options in ${context}.`);
@@ -204,6 +211,8 @@ function parseQuestion(section, order) {
     "correctOrder",
     "correctText",
     "explanation",
+    "incorrectExplanation",
+    "sourceBlockOrder",
   ]);
   const type = requireField(fields, "type", section.heading);
 
@@ -215,6 +224,12 @@ function parseQuestion(section, order) {
     type,
     prompt: requireField(fields, "prompt", section.heading),
     explanation: fields.explanation || null,
+    incorrectExplanation: fields.incorrectExplanation || null,
+    sourceBlockOrder: parseInteger(
+      fields.sourceBlockOrder,
+      null,
+      `${section.heading}.sourceBlockOrder`,
+    ),
     points: parseInteger(fields.points, 1, `${section.heading}.points`),
     correctText: fields.correctText || null,
     correctOrder: null,
@@ -460,6 +475,8 @@ async function importPackage(prisma, lessonPackage) {
             type: question.type,
             prompt: question.prompt,
             explanation: question.explanation,
+            incorrectExplanation: question.incorrectExplanation,
+            sourceBlockOrder: question.sourceBlockOrder,
             points: question.points,
             correctText: question.correctText,
             correctOrder: question.correctOrder,
@@ -467,6 +484,7 @@ async function importPackage(prisma, lessonPackage) {
             options: {
               create: question.options.map((option) => ({
                 text: option.text,
+                feedback: option.feedback,
                 isCorrect: option.isCorrect,
                 order: option.order,
               })),

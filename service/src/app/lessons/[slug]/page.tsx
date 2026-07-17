@@ -17,6 +17,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { submitAssignmentAction } from "@/app/actions/learning";
 import { LessonModeTabs } from "@/app/lessons/[slug]/lesson-mode-tabs";
+import { LessonActivityProvider } from "@/app/lessons/[slug]/lesson-activity-provider";
 import { TestForm } from "@/app/lessons/[slug]/test-form";
 import { CockpitShell } from "@/components/cockpit-shell";
 import { TimelineRail, type TimelineStep } from "@/components/cockpit-ui";
@@ -320,6 +321,10 @@ export default async function LessonPage({ params }: LessonPageProps) {
           />
         </div>
 
+        <LessonActivityProvider
+          blockIds={lesson.blocks.map((block) => block.id)}
+          lessonId={lesson.id}
+        >
         <section className="mt-5 grid min-w-0 grid-cols-[minmax(0,1fr)] scroll-mt-28 gap-4" id="materials">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -349,6 +354,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
             );
           })}
         </section>
+        </LessonActivityProvider>
 
         <section className="mt-6 grid min-w-0 grid-cols-[minmax(0,1fr)] scroll-mt-28 gap-4" id="practice">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -552,6 +558,20 @@ export default async function LessonPage({ params }: LessonPageProps) {
                       type: question.type,
                       prompt: question.prompt,
                       explanation: question.explanation,
+                      incorrectExplanation: question.incorrectExplanation,
+                      sourceBlock: (() => {
+                        const block = lesson.blocks.find(
+                          (item) => item.order === question.sourceBlockOrder,
+                        );
+
+                        return block
+                          ? {
+                              id: block.id,
+                              order: block.order,
+                              title: block.title,
+                            }
+                          : null;
+                      })(),
                       points: question.points,
                       correctText: question.correctText,
                       correctOrder: question.correctOrder,
@@ -559,6 +579,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
                         id: option.id,
                         text: option.text,
                         isCorrect: option.isCorrect,
+                        feedback: option.feedback,
                       })),
                     })),
                   }}

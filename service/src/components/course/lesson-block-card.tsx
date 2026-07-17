@@ -45,6 +45,7 @@ export function LessonBlockCard({
     <article
       className="lesson-block-card cockpit-panel min-w-0 scroll-mt-28 p-5"
       data-block-type={block.type.toLowerCase()}
+      data-lesson-block-id={block.id}
       id={`block-${block.id}`}
     >
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

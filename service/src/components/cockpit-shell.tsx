@@ -16,8 +16,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import packageJson from "../../package.json";
 import { logoutAction } from "@/app/actions/auth";
 import { AchievementUnlockOverlay } from "@/components/achievement-unlock-overlay";
+import { UserActivityTracker } from "@/components/user-activity-tracker";
 import { db } from "@/lib/db";
 import type { CurrentUser } from "@/lib/session";
 
@@ -94,6 +96,7 @@ export async function CockpitShell({
 
   return (
     <main className="min-h-screen min-w-0 max-w-full bg-[var(--background)] text-[var(--foreground)]">
+      <UserActivityTracker />
       <div className="grid min-h-screen min-w-0 grid-cols-[minmax(0,1fr)] lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="cockpit-sidebar flex min-w-0 max-w-full flex-col justify-between px-4 py-5 text-white lg:sticky lg:top-0 lg:h-screen">
           <div>
@@ -128,13 +131,21 @@ export async function CockpitShell({
             </nav>
           </div>
 
-          <div className="hidden rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70 lg:block">
-            <div className="mb-2 flex items-center gap-2 text-white">
-              <Gauge size={16} />
-              <span className="font-semibold">Учебный cockpit</span>
+          <div className="hidden lg:block">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70">
+              <div className="mb-2 flex items-center gap-2 text-white">
+                <Gauge size={16} />
+                <span className="font-semibold">Учебный cockpit</span>
+              </div>
+              <p className="leading-5">
+                Сервер хранит прогресс, тесты и место остановки ученика.
+              </p>
             </div>
-            <p className="leading-5">
-              Сервер хранит прогресс, тесты и место остановки ученика.
+            <p
+              aria-label={`Версия приложения ${packageJson.version}`}
+              className="mt-3 text-center text-xs font-semibold tracking-wide text-white/45"
+            >
+              Версия {packageJson.version}
             </p>
           </div>
         </aside>

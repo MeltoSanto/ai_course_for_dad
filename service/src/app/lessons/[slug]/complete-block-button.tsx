@@ -4,6 +4,7 @@ import { completeBlockAction } from "@/app/actions/progress";
 import { Check, LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLessonActivity } from "@/app/lessons/[slug]/lesson-activity-provider";
 
 type CompleteBlockButtonProps = {
   blockId: string;
@@ -94,6 +95,7 @@ export function CompleteBlockButton({
   slug,
 }: CompleteBlockButtonProps) {
   const router = useRouter();
+  const { flushBlock } = useLessonActivity();
   const [isSaving, setIsSaving] = useState(false);
   const [completed, setCompleted] = useState(isCompleted);
   const [failed, setFailed] = useState(false);
@@ -108,6 +110,7 @@ export function CompleteBlockButton({
     setIsSaving(true);
 
     try {
+      await flushBlock(blockId);
       const result = await completeBlockAction(lessonId, blockId, slug);
 
       if (!result?.targetHash) {

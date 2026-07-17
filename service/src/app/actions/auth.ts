@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { getRequestDeviceInfo, moscowDayKey } from "@/lib/activity";
 import { db } from "@/lib/db";
 import { verifyPassword } from "@/lib/password";
 import { createSession, deleteSession } from "@/lib/session";
@@ -26,6 +28,8 @@ export async function loginAction(
       id: true,
       passwordHash: true,
       role: true,
+      isActive: true,
+      sessionVersion: true,
       username: true,
     },
   });
@@ -36,11 +40,40 @@ export async function loginAction(
       candidate.displayName.normalize("NFKC").toLocaleLowerCase("ru-RU") === normalizedLoginName,
   );
 
-  if (!user || !verifyPassword(password, user.passwordHash)) {
+  if (!user || !user.isActive || !verifyPassword(password, user.passwordHash)) {
     return { error: "Неверное имя или пароль." };
   }
 
-  await createSession(user);
+  const now = new Date();
+  const device = getRequestDeviceInfo(await headers());
+  const accessSession = await db.userAccessSession.create({
+    data: {
+      userId: user.id,
+      signedInAt: now,
+      lastActiveAt: now,
+      ...device,
+    },
+  });
+
+  await db.userActivityDay.upsert({
+    where: {
+      userId_dayKey: {
+        userId: user.id,
+        dayKey: moscowDayKey(now),
+      },
+    },
+    update: {
+      lastActiveAt: now,
+    },
+    create: {
+      userId: user.id,
+      dayKey: moscowDayKey(now),
+      firstActiveAt: now,
+      lastActiveAt: now,
+    },
+  });
+
+  await createSession(user, accessSession.id);
   redirect("/");
 }
 

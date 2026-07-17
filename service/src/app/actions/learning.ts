@@ -27,12 +27,19 @@ type StoredAnswer = {
   isCorrect: boolean;
   pointsAwarded: number;
   maxPoints: number;
+  shuffleSeed?: string;
 };
+
+export type DraftTestAnswer = Pick<
+  StoredAnswer,
+  "questionId" | "answer" | "shuffleSeed"
+>;
 
 export type SubmitTestState = {
   status: "idle" | "error" | "success";
   message?: string;
   missingQuestionIds?: string[];
+  draftAnswers?: DraftTestAnswer[];
   attempt?: {
     score: number;
     maxScore: number;
@@ -222,15 +229,24 @@ export async function submitTestAction(
     let answer: string | string[] = "";
     let correctAnswer: string | string[] = "";
     let isCorrect = false;
+    let pointsAwarded = 0;
+    const shuffleSeed = text(
+      formData,
+      `question_${question.id}_shuffle_seed`,
+    ).slice(0, 128);
 
     if (
       question.type === QuestionType.SINGLE_CHOICE ||
       question.type === QuestionType.MULTIPLE_CHOICE
     ) {
-      const selectedOptionIds = formData
-        .getAll(`question_${question.id}`)
-        .map(String)
-        .filter(Boolean);
+      const selectedOptionIds = Array.from(
+        new Set(
+          formData
+            .getAll(`question_${question.id}`)
+            .map(String)
+            .filter(Boolean),
+        ),
+      );
       const correctOptionIds = question.options
         .filter((option) => option.isCorrect)
         .map((option) => option.id);
@@ -246,12 +262,31 @@ export async function submitTestAction(
         selectedOptionIds.length > 0 &&
         correctOptionIds.length > 0 &&
         sameSet(selectedOptionIds, correctOptionIds);
+
+      if (question.type === QuestionType.MULTIPLE_CHOICE) {
+        const correctIds = new Set(correctOptionIds);
+        const correctSelected = selectedOptionIds.filter((id) =>
+          correctIds.has(id),
+        ).length;
+        const incorrectSelected = selectedOptionIds.length - correctSelected;
+        const earnedShare =
+          correctOptionIds.length > 0
+            ? Math.max(
+                0,
+                (correctSelected - incorrectSelected) /
+                  correctOptionIds.length,
+              )
+            : 0;
+
+        pointsAwarded = Math.round(question.points * earnedShare * 100) / 100;
+      }
     }
 
     if (question.type === QuestionType.SORT_STEPS) {
       const model = buildSortQuestionModel({
         correctOrder: question.correctOrder,
         prompt: question.prompt,
+        shuffleSeed,
       });
       const selectedKeys = normalizeSortSelection(
         formData.getAll(`question_${question.id}`).map(String),
@@ -290,7 +325,10 @@ export async function submitTestAction(
       });
     }
 
-    const pointsAwarded = isCorrect ? question.points : 0;
+    if (question.type !== QuestionType.MULTIPLE_CHOICE) {
+      pointsAwarded = isCorrect ? question.points : 0;
+    }
+
     score += pointsAwarded;
 
     return {
@@ -301,6 +339,7 @@ export async function submitTestAction(
       isCorrect,
       pointsAwarded,
       maxPoints: question.points,
+      ...(shuffleSeed ? { shuffleSeed } : {}),
     };
   });
 
@@ -312,6 +351,11 @@ export async function submitTestAction(
           ? "Тест пока пустой. Ответьте на вопросы перед завершением."
           : "Заполните все вопросы перед завершением теста.",
       missingQuestionIds,
+      draftAnswers: answers.map(({ questionId, answer, shuffleSeed }) => ({
+        questionId,
+        answer,
+        ...(shuffleSeed ? { shuffleSeed } : {}),
+      })),
     };
   }
 
@@ -345,7 +389,7 @@ export async function submitTestAction(
     status: "success",
     message: isPassed
       ? "Тест пройден. Зачёт сохранён."
-      : "Пока не пройдено. Можно исправить ответы и попробовать ещё раз.",
+      : "Пока не пройдено. Разберите ошибки и начните новую попытку.",
     attempt: {
       score,
       maxScore,

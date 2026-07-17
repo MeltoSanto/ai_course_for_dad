@@ -1120,6 +1120,27 @@ body {
   box-shadow: 0 0 0 3px rgba(182, 79, 28, 0.08);
 }
 
+.test-question-card:disabled {
+  background: rgba(249, 248, 243, 0.92);
+}
+
+.test-question-card:disabled .test-option {
+  cursor: default;
+}
+
+.test-question-card:disabled .test-option:hover {
+  border-color: transparent;
+  background: var(--surface-muted);
+}
+
+.test-question-card:disabled input,
+.test-question-card:disabled select,
+.test-question-card:disabled textarea {
+  opacity: 1;
+  color: var(--foreground);
+  cursor: default;
+}
+
 .test-question-legend {
   display: block;
   width: 100%;
@@ -1283,6 +1304,189 @@ body {
   font-size: 0.86rem;
   font-weight: 750;
   padding: 0.62rem 0.75rem;
+}
+
+.test-question-review {
+  margin-top: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.test-question-review.is-wrong {
+  border-color: rgba(182, 79, 28, 0.28);
+}
+
+.test-question-review.is-correct {
+  border-color: rgba(7, 108, 62, 0.2);
+}
+
+.test-question-review > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.85rem 1rem;
+  font-size: 0.92rem;
+  font-weight: 850;
+  list-style: none;
+}
+
+.test-question-review > summary::-webkit-details-marker {
+  display: none;
+}
+
+.test-question-review > summary::before {
+  content: "+";
+  display: inline-grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.test-question-review[open] > summary::before {
+  content: "−";
+}
+
+.test-question-review > summary > :first-child {
+  margin-right: auto;
+}
+
+.test-review-score {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--foreground);
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 0.28rem 0.55rem;
+  white-space: nowrap;
+}
+
+.test-question-review.is-wrong > summary {
+  background: rgba(255, 241, 231, 0.72);
+  color: #8a3418;
+}
+
+.test-question-review.is-correct > summary {
+  background: rgba(227, 245, 235, 0.66);
+  color: var(--signal-green-strong);
+}
+
+.test-question-review[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.test-review-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.test-review-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.test-review-answer,
+.test-review-explanation,
+.test-review-options > div {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.8rem 0.9rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.test-review-answer.is-wrong,
+.test-review-explanation.is-wrong,
+.test-review-options > .is-wrong {
+  border-color: rgba(182, 79, 28, 0.22);
+  background: rgba(255, 241, 231, 0.66);
+  color: #743018;
+}
+
+.test-review-answer.is-correct,
+.test-review-explanation.is-correct,
+.test-review-options > .is-correct {
+  border-color: rgba(7, 108, 62, 0.18);
+  background: rgba(227, 245, 235, 0.62);
+  color: #174e34;
+}
+
+.test-partial-score-note {
+  border: 1px solid rgba(155, 112, 12, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 248, 218, 0.78);
+  color: #66500f;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  padding: 0.8rem 0.9rem;
+}
+
+.test-review-label {
+  margin-bottom: 0.28rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.test-review-explanation h4 {
+  margin-bottom: 0.35rem;
+  font-weight: 900;
+}
+
+.test-review-options {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.test-review-source {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.9rem;
+}
+
+.test-retry-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid rgba(7, 108, 62, 0.16);
+  border-radius: 14px;
+  background: rgba(227, 245, 235, 0.58);
+  padding: 1rem;
+}
+
+@media (min-width: 720px) {
+  .test-review-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .test-review-source,
+  .test-retry-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .test-review-source .test-secondary-button,
+  .test-retry-panel .test-submit-button {
+    width: 100%;
+  }
 }
 
 .test-submit-button,

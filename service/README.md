@@ -22,10 +22,7 @@ npm run dev
 DATABASE_URL="file:../data/prod.db"
 AUTH_SECRET="replace-with-output-of-openssl-rand-base64-48"
 SEED_STUDENT_PASSWORD="change-roman-password"
-SEED_QA_PASSWORD="1234"
 SEED_ADMIN_PASSWORD="change-nikita-password"
-QA_USERNAME="qa"
-QA_PASSWORD="1234"
 ```
 
 `DATABASE_URL="file:../data/prod.db"` хранит SQLite в `service/data/prod.db`.
@@ -56,18 +53,12 @@ PORT=3000 npm start
 Стартовые пользователи создаются сидером:
 
 - `roman` с паролем из `SEED_STUDENT_PASSWORD`;
-- `qa` с паролем из `SEED_QA_PASSWORD`;
 - `nikita` с паролем из `SEED_ADMIN_PASSWORD`.
 
 Если пользователь уже существует, сидер не перезаписывает пароль.
 
-Для повторяемого QA без порчи прогресса Романа используйте:
-
-```bash
-npm run qa:reset
-```
-
-Команда создает или обновляет пользователя `qa` и очищает только его прогресс, попытки тестов и ачивки.
+Тестовые и административные функции выполняются из аккаунта `nikita`.
+Отдельный аккаунт `qa` больше не создаётся.
 
 ## Проверка продакшена
 

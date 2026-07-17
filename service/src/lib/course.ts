@@ -5,6 +5,7 @@ import {
   PublicationStatus,
 } from "@prisma/client";
 import { db } from "@/lib/db";
+import { activityDayCutoff } from "@/lib/activity";
 
 export const statusLabels: Record<PublicationStatus, string> = {
   DRAFT: "Черновик",
@@ -515,6 +516,71 @@ export async function getAdminProgressManager() {
         id: true,
         username: true,
         displayName: true,
+        accessSessions: {
+          orderBy: {
+            signedInAt: "desc",
+          },
+          take: 20,
+          select: {
+            id: true,
+            signedInAt: true,
+            lastActiveAt: true,
+            signedOutAt: true,
+            ipAddress: true,
+            deviceType: true,
+            operatingSystem: true,
+            browser: true,
+            lastPath: true,
+            lastLesson: {
+              select: {
+                id: true,
+                title: true,
+                order: true,
+              },
+            },
+          },
+        },
+        activityDays: {
+          where: {
+            dayKey: {
+              gte: activityDayCutoff(),
+            },
+          },
+          select: {
+            dayKey: true,
+          },
+        },
+        blockProgresses: {
+          where: {
+            OR: [
+              { firstOpenedAt: { not: null } },
+              { activeSeconds: { gt: 0 } },
+              { reviewSeconds: { gt: 0 } },
+            ],
+          },
+          select: {
+            blockId: true,
+            activeSeconds: true,
+            reviewSeconds: true,
+            visitCount: true,
+            firstOpenedAt: true,
+            lastOpenedAt: true,
+            completedAt: true,
+            block: {
+              select: {
+                title: true,
+                order: true,
+                lesson: {
+                  select: {
+                    id: true,
+                    title: true,
+                    order: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         _count: {
           select: {
             lessonProgresses: true,
@@ -522,6 +588,7 @@ export async function getAdminProgressManager() {
             assignmentProgresses: true,
             testAttempts: true,
             achievements: true,
+            accessSessions: true,
           },
         },
       },

@@ -669,12 +669,27 @@ export default async function AdminLessonPage({ params }: AdminLessonPageProps) 
                             />
                           </label>
                         </div>
-                        <div className="mt-3 grid gap-3 md:grid-cols-3">
+                        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                           <label className="text-sm font-medium">
                             Пояснение
                             <textarea
                               className={compactTextareaClass}
                               name="explanation"
+                            />
+                          </label>
+                          <label className="text-sm font-medium">
+                            Почему ответ не подходит
+                            <textarea
+                              className={compactTextareaClass}
+                              name="incorrectExplanation"
+                            />
+                          </label>
+                          <label className="text-sm font-medium">
+                            Номер блока-основания
+                            <NumberInput
+                              defaultValue={null}
+                              min={1}
+                              name="sourceBlockOrder"
                             />
                           </label>
                           <label className="text-sm font-medium">
@@ -740,13 +755,29 @@ export default async function AdminLessonPage({ params }: AdminLessonPageProps) 
                                 />
                               </label>
                             </div>
-                            <div className="mt-3 grid gap-3 md:grid-cols-3">
+                            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                               <label className="text-sm font-medium">
                                 Пояснение
                                 <textarea
                                   className={compactTextareaClass}
                                   defaultValue={question.explanation ?? ""}
                                   name="explanation"
+                                />
+                              </label>
+                              <label className="text-sm font-medium">
+                                Почему ответ не подходит
+                                <textarea
+                                  className={compactTextareaClass}
+                                  defaultValue={question.incorrectExplanation ?? ""}
+                                  name="incorrectExplanation"
+                                />
+                              </label>
+                              <label className="text-sm font-medium">
+                                Номер блока-основания
+                                <NumberInput
+                                  defaultValue={question.sourceBlockOrder}
+                                  min={1}
+                                  name="sourceBlockOrder"
                                 />
                               </label>
                               <label className="text-sm font-medium">
@@ -780,7 +811,7 @@ export default async function AdminLessonPage({ params }: AdminLessonPageProps) 
                                   lesson.id,
                                   option.id,
                                 )}
-                                className="grid gap-2 rounded-md border border-black/10 bg-white p-2 md:grid-cols-[1fr_90px_130px_120px] md:items-end"
+                                className="grid gap-2 rounded-md border border-black/10 bg-white p-2 md:grid-cols-[1fr_1fr_90px_130px_120px] md:items-end"
                                 key={option.id}
                               >
                                 <label className="text-sm font-medium">
@@ -790,6 +821,14 @@ export default async function AdminLessonPage({ params }: AdminLessonPageProps) 
                                     defaultValue={option.text}
                                     name="text"
                                     required
+                                  />
+                                </label>
+                                <label className="text-sm font-medium">
+                                  Пояснение варианта
+                                  <input
+                                    className={inputClass}
+                                    defaultValue={option.feedback ?? ""}
+                                    name="feedback"
                                   />
                                 </label>
                                 <label className="text-sm font-medium">
@@ -819,11 +858,15 @@ export default async function AdminLessonPage({ params }: AdminLessonPageProps) 
                                 lesson.id,
                                 question.id,
                               )}
-                              className="grid gap-2 rounded-md border border-dashed border-black/20 bg-white p-2 md:grid-cols-[1fr_90px_130px_120px] md:items-end"
+                              className="grid gap-2 rounded-md border border-dashed border-black/20 bg-white p-2 md:grid-cols-[1fr_1fr_90px_130px_120px] md:items-end"
                             >
                               <label className="text-sm font-medium">
                                 Новый вариант
                                 <input className={inputClass} name="text" required />
+                              </label>
+                              <label className="text-sm font-medium">
+                                Пояснение варианта
+                                <input className={inputClass} name="feedback" />
                               </label>
                               <label className="text-sm font-medium">
                                 Порядок

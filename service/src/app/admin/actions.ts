@@ -189,6 +189,7 @@ async function getLessonPathById(lessonId: string) {
 
 async function revalidateLessonAdmin(lessonId: string) {
   revalidatePath("/admin");
+  revalidatePath("/admin/lessons");
   revalidatePath(`/admin/lessons/${lessonId}`);
   revalidatePath(await getLessonPathById(lessonId));
   revalidatePath("/");
@@ -222,6 +223,7 @@ export async function createLessonAction(formData: FormData) {
   });
 
   revalidatePath("/admin");
+  revalidatePath("/admin/lessons");
   redirect(`/admin/lessons/${lesson.id}`);
 }
 
@@ -461,6 +463,10 @@ export async function createQuestionAction(
       type: enumValue(formData, "type", questionTypes, QuestionType.SINGLE_CHOICE),
       prompt,
       explanation: optionalText(formData, "explanation"),
+      incorrectExplanation: optionalText(formData, "incorrectExplanation"),
+      sourceBlockOrder: optionalText(formData, "sourceBlockOrder")
+        ? intValue(formData, "sourceBlockOrder", 1)
+        : null,
       points: intValue(formData, "points", 1),
       correctText: optionalText(formData, "correctText"),
       correctOrder: optionalText(formData, "correctOrder"),
@@ -492,6 +498,10 @@ export async function updateQuestionAction(
       type: enumValue(formData, "type", questionTypes, QuestionType.SINGLE_CHOICE),
       prompt,
       explanation: optionalText(formData, "explanation"),
+      incorrectExplanation: optionalText(formData, "incorrectExplanation"),
+      sourceBlockOrder: optionalText(formData, "sourceBlockOrder")
+        ? intValue(formData, "sourceBlockOrder", 1)
+        : null,
       points: intValue(formData, "points", 1),
       correctText: optionalText(formData, "correctText"),
       correctOrder: optionalText(formData, "correctOrder"),
@@ -519,6 +529,7 @@ export async function createQuestionOptionAction(
     data: {
       questionId,
       text: optionText,
+      feedback: optionalText(formData, "feedback"),
       isCorrect: checkbox(formData, "isCorrect"),
       order: intValue(formData, "order", 1),
     },
@@ -546,6 +557,7 @@ export async function updateQuestionOptionAction(
     },
     data: {
       text: optionText,
+      feedback: optionalText(formData, "feedback"),
       isCorrect: checkbox(formData, "isCorrect"),
       order: intValue(formData, "order", 1),
     },

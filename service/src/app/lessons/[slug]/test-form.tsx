@@ -7,6 +7,7 @@ import {
 import { Chip } from "@heroui/react/chip";
 import {
   AlertCircle,
+  BookOpen,
   CheckCircle2,
   Flag,
   RotateCcw,
@@ -24,6 +25,7 @@ import {
 import {
   buildSortQuestionModel,
   normalizeSortSelection,
+  shuffleBySeed,
   type SortQuestionModel,
 } from "@/lib/sort-question";
 
@@ -35,12 +37,20 @@ type QuestionType =
   | "FILL_BLANK";
 
 type StoredAnswer = NonNullable<SubmitTestState["attempt"]>["answers"][number];
+type DraftAnswer = NonNullable<SubmitTestState["draftAnswers"]>[number];
+type AnswerValue = Pick<StoredAnswer, "answer">;
 
 type TestQuestion = {
   id: string;
   type: QuestionType;
   prompt: string;
   explanation: string | null;
+  incorrectExplanation: string | null;
+  sourceBlock: {
+    id: string;
+    order: number;
+    title: string;
+  } | null;
   points: number;
   correctText: string | null;
   correctOrder: string | null;
@@ -48,6 +58,7 @@ type TestQuestion = {
     id: string;
     text: string;
     isCorrect: boolean;
+    feedback: string | null;
   }[];
 };
 
@@ -102,7 +113,7 @@ function parseStoredAnswers(answers: TestAttempt["answers"] | undefined) {
   }
 }
 
-function storedAnswerText(answer: StoredAnswer | undefined) {
+function storedAnswerText(answer: AnswerValue | undefined) {
   if (!answer) {
     return "";
   }
@@ -110,7 +121,7 @@ function storedAnswerText(answer: StoredAnswer | undefined) {
   return Array.isArray(answer.answer) ? answer.answer.join("\n") : answer.answer;
 }
 
-function storedAnswerValues(answer: StoredAnswer | undefined) {
+function storedAnswerValues(answer: AnswerValue | undefined) {
   if (!answer || !Array.isArray(answer.answer)) {
     return new Set<string>();
   }
@@ -126,22 +137,237 @@ function testPercent(score: number, maxScore: number) {
   return Math.round((score / maxScore) * 100);
 }
 
+function formatScore(value: number) {
+  return new Intl.NumberFormat("ru-RU", {
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 function formatAttemptDate(value: string) {
   return new Date(value).toLocaleString("ru-RU");
+}
+
+function textAnswer(value: string | string[]) {
+  if (Array.isArray(value)) {
+    return value.join(", ");
+  }
+
+  return value;
+}
+
+function canonicalCorrectText(value: string | string[]) {
+  if (Array.isArray(value)) {
+    return value.join(", ");
+  }
+
+  return value.split("|")[0]?.trim() ?? value;
+}
+
+function choiceText(question: TestQuestion, optionIds: string | string[]) {
+  const ids = new Set(Array.isArray(optionIds) ? optionIds : [optionIds]);
+  const values = question.options
+    .filter((option) => ids.has(option.id))
+    .map((option) => option.text);
+
+  return values.length > 0 ? values.join("; ") : "Ответ не найден";
+}
+
+function sortAnswerText(value: string | string[], model: SortQuestionModel) {
+  const keys = normalizeSortSelection(value, model);
+
+  return keys
+    .map((key, index) => {
+      const variant = model.variants.find((item) => item.key === key);
+      return `${index + 1}. ${key}${variant ? ` — ${variant.text}` : ""}`;
+    })
+    .join("\n");
+}
+
+function answerText({
+  answer,
+  question,
+  sortModel,
+  useCorrectAnswer = false,
+}: {
+  answer: StoredAnswer;
+  question: TestQuestion;
+  sortModel: SortQuestionModel | null;
+  useCorrectAnswer?: boolean;
+}) {
+  const value = useCorrectAnswer ? answer.correctAnswer : answer.answer;
+
+  if (
+    question.type === "SINGLE_CHOICE" ||
+    question.type === "MULTIPLE_CHOICE"
+  ) {
+    return choiceText(question, value);
+  }
+
+  if (question.type === "SORT_STEPS" && sortModel) {
+    return sortAnswerText(value, sortModel);
+  }
+
+  return useCorrectAnswer
+    ? canonicalCorrectText(value)
+    : textAnswer(value);
+}
+
+function QuestionReview({
+  answer,
+  lessonSlug,
+  question,
+  sortModel,
+}: {
+  answer: StoredAnswer;
+  lessonSlug: string;
+  question: TestQuestion;
+  sortModel: SortQuestionModel | null;
+}) {
+  const selectedIds = new Set(
+    Array.isArray(answer.answer) ? answer.answer : [answer.answer],
+  );
+  const correctIds = new Set(
+    Array.isArray(answer.correctAnswer)
+      ? answer.correctAnswer
+      : [answer.correctAnswer],
+  );
+  const correctSelectedCount = [...selectedIds].filter((id) =>
+    correctIds.has(id),
+  ).length;
+  const incorrectSelectedCount = [...selectedIds].filter(
+    (id) => !correctIds.has(id),
+  ).length;
+  const explainedOptions = question.options.filter(
+    (option) =>
+      option.feedback &&
+      (correctIds.has(option.id) ||
+        (selectedIds.has(option.id) && !correctIds.has(option.id))),
+  );
+
+  return (
+    <details
+      className={`test-question-review ${answer.isCorrect ? "is-correct" : "is-wrong"}`}
+      name="test-question-review"
+    >
+      <summary>
+        <span>
+          {answer.isCorrect ? "Посмотреть пояснение" : "Разбор ошибки"}
+        </span>
+        <span className="test-review-score">
+          {formatScore(answer.pointsAwarded)} из {formatScore(answer.maxPoints)}
+        </span>
+      </summary>
+
+      <div className="test-review-content">
+        <div className="test-review-grid">
+          <div className={`test-review-answer ${answer.isCorrect ? "is-correct" : "is-wrong"}`}>
+            <p className="test-review-label">Ваш ответ</p>
+            <p className="whitespace-pre-line">
+              {answerText({ answer, question, sortModel })}
+            </p>
+          </div>
+          <div className="test-review-answer is-correct">
+            <p className="test-review-label">Правильный ответ</p>
+            <p className="whitespace-pre-line">
+              {answerText({
+                answer,
+                question,
+                sortModel,
+                useCorrectAnswer: true,
+              })}
+            </p>
+          </div>
+        </div>
+
+        {question.type === "MULTIPLE_CHOICE" && !answer.isCorrect ? (
+          <div className="test-partial-score-note">
+            <p className="font-bold">
+              Вы выбрали {correctSelectedCount} из {correctIds.size} правильных
+              вариантов — {formatScore(answer.pointsAwarded)} из{" "}
+              {formatScore(answer.maxPoints)} баллов.
+            </p>
+            {incorrectSelectedCount > 0 ? (
+              <p className="mt-1">
+                Ошибочно выбрано вариантов: {incorrectSelectedCount}. Они
+                уменьшили результат.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {!answer.isCorrect && question.incorrectExplanation ? (
+          <div className="test-review-explanation is-wrong">
+            <h4>Почему ваш ответ не подходит</h4>
+            <p>{question.incorrectExplanation}</p>
+          </div>
+        ) : null}
+
+        {explainedOptions.length > 0 ? (
+          <div className="test-review-options">
+            {explainedOptions.map((option) => {
+              const isCorrectOption = correctIds.has(option.id);
+              const wasSelected = selectedIds.has(option.id);
+              const label = isCorrectOption
+                ? wasSelected
+                  ? "Правильно выбранный вариант"
+                  : "Пропущенный правильный вариант"
+                : "Ошибочно выбранный вариант";
+
+              return (
+                <div
+                  className={isCorrectOption ? "is-correct" : "is-wrong"}
+                  key={option.id}
+                >
+                  <p className="test-review-label">{label}</p>
+                  <p className="font-bold">{option.text}</p>
+                  <p className="mt-1">{option.feedback}</p>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {question.explanation ? (
+          <div className="test-review-explanation is-correct">
+            <h4>Почему правильный ответ подходит</h4>
+            <p>{question.explanation}</p>
+          </div>
+        ) : null}
+
+        {question.sourceBlock ? (
+          <div className="test-review-source">
+            <div>
+              <p className="test-review-label">Где это объясняется в уроке</p>
+              <p className="font-bold">
+                Блок {question.sourceBlock.order}. {question.sourceBlock.title}
+              </p>
+            </div>
+            <Link
+              className="test-secondary-button"
+              href={`/lessons/${lessonSlug}#block-${question.sourceBlock.id}`}
+            >
+              <BookOpen aria-hidden="true" size={15} />
+              Открыть материал
+            </Link>
+          </div>
+        ) : null}
+      </div>
+    </details>
+  );
 }
 
 function SortStepsFields({
   model,
   questionId,
-  storedAnswer,
+  answerValue,
 }: {
   model: SortQuestionModel;
   questionId: string;
-  storedAnswer: StoredAnswer | undefined;
+  answerValue: AnswerValue | undefined;
 }) {
   const [selection, setSelection] = useState(() => {
     const storedSelection = normalizeSortSelection(
-      storedAnswer?.answer ?? "",
+      answerValue?.answer ?? "",
       model,
     );
 
@@ -231,6 +457,8 @@ export function TestForm({
   test,
 }: TestFormProps) {
   const [formKey, setFormKey] = useState(0);
+  const [validationRevision, setValidationRevision] = useState(0);
+  const [attemptSeed, setAttemptSeed] = useState(`${test.id}:initial`);
   const [isReviewHidden, setIsReviewHidden] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
   const handleSubmit = useCallback(
@@ -245,6 +473,12 @@ export function TestForm({
 
       if (nextState.status === "success") {
         setIsReviewHidden(false);
+      } else if (nextState.status === "error") {
+        // React resets an action form after the action resolves. Remount on the
+        // next frame, once that reset is complete, using the server draft.
+        window.requestAnimationFrame(() => {
+          setValidationRevision((current) => current + 1);
+        });
       }
 
       return nextState;
@@ -263,8 +497,22 @@ export function TestForm({
     () => new Map(activeAnswers.map((answer) => [answer.questionId, answer])),
     [activeAnswers],
   );
+  const draftAnswerMap = useMemo(
+    () =>
+      new Map<string, DraftAnswer>(
+        state.status === "error"
+          ? (state.draftAnswers ?? []).map((answer) => [
+              answer.questionId,
+              answer,
+            ])
+          : [],
+      ),
+    [state.draftAnswers, state.status],
+  );
   const missingQuestionIds = new Set(state.missingQuestionIds ?? []);
   const effectiveHasPassed = hasPassed || state.attempt?.isPassed === true;
+  const wrongAnswers = activeAnswers.filter((answer) => !answer.isCorrect);
+  const firstWrongQuestionId = wrongAnswers[0]?.questionId;
 
   useEffect(() => {
     if (state.status === "idle") {
@@ -280,7 +528,12 @@ export function TestForm({
 
   function resetForm() {
     setIsReviewHidden(true);
+    setAttemptSeed(crypto.randomUUID());
     setFormKey((current) => current + 1);
+    window.requestAnimationFrame(() => {
+      resultRef.current?.focus({ preventScroll: true });
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   return (
@@ -326,11 +579,19 @@ export function TestForm({
                     : "Пока не пройдено"}
               </p>
               <p className="mt-1 text-sm">
-                {activeAttempt.score}/{activeAttempt.maxScore} баллов,{" "}
+                {formatScore(activeAttempt.score)}/{formatScore(activeAttempt.maxScore)} баллов,{" "}
                 {testPercent(activeAttempt.score, activeAttempt.maxScore)}%.
                 Нужно: {test.passingScore}. Последняя попытка:{" "}
                 {formatAttemptDate(activeAttempt.createdAt)}.
               </p>
+              {!activeAttempt.isPassed && firstWrongQuestionId ? (
+                <a
+                  className="mt-2 inline-flex font-bold underline underline-offset-4"
+                  href={`#question-${firstWrongQuestionId}`}
+                >
+                  Разобрать ошибки: {wrongAnswers.length}
+                </a>
+              ) : null}
             </div>
           </>
         ) : (
@@ -361,7 +622,7 @@ export function TestForm({
         <div className="mt-3 flex flex-wrap gap-2">
           <button className="test-secondary-button" type="button" onClick={resetForm}>
             <RotateCcw aria-hidden="true" size={15} />
-            Попробовать ещё раз
+            Пройти тест заново
           </button>
           <Link className="test-secondary-button" href="/progress">
             Открыть прогресс
@@ -369,17 +630,31 @@ export function TestForm({
         </div>
       ) : null}
 
-      <form action={formAction} className="mt-4 flex flex-col gap-4" key={formKey}>
+      <form
+        action={formAction}
+        className="mt-4 flex flex-col gap-4"
+        key={`${formKey}-${validationRevision}`}
+      >
         {test.questions.map((question, index) => {
           const storedAnswer = answerMap.get(question.id);
-          const selectedValues = storedAnswerValues(storedAnswer);
+          const draftAnswer = draftAnswerMap.get(question.id);
+          const answerValue = storedAnswer ?? draftAnswer;
+          const selectedValues = storedAnswerValues(answerValue);
           const isMissing = missingQuestionIds.has(question.id);
           const isAnswered = Boolean(storedAnswer);
+          const questionShuffleSeed =
+            storedAnswer?.shuffleSeed ??
+            draftAnswer?.shuffleSeed ??
+            `${attemptSeed}:${question.id}`;
+          const displayedOptions = questionShuffleSeed
+            ? shuffleBySeed(question.options, questionShuffleSeed)
+            : question.options;
           const sortModel =
             question.type === "SORT_STEPS"
               ? buildSortQuestionModel({
                   correctOrder: question.correctOrder,
                   prompt: question.prompt,
+                  shuffleSeed: questionShuffleSeed,
                 })
               : null;
 
@@ -389,6 +664,7 @@ export function TestForm({
                 isMissing ? `question-${question.id}-error` : ""
               }`}
               className={`test-question-card ${isMissing ? "is-missing" : ""}`}
+              disabled={isAnswered}
               id={`question-${question.id}`}
               key={question.id}
             >
@@ -412,14 +688,25 @@ export function TestForm({
                     color={storedAnswer.isCorrect ? "success" : "danger"}
                   >
                     {storedAnswer.isCorrect ? "Верно" : "Пока ошибка"} ·{" "}
-                    {storedAnswer.pointsAwarded}/{storedAnswer.maxPoints}
+                    {formatScore(storedAnswer.pointsAwarded)}/{formatScore(storedAnswer.maxPoints)}
                   </Chip>
                 ) : null}
               </div>
 
+              {questionShuffleSeed &&
+              (question.type === "SINGLE_CHOICE" ||
+                question.type === "MULTIPLE_CHOICE" ||
+                question.type === "SORT_STEPS") ? (
+                <input
+                  name={`question_${question.id}_shuffle_seed`}
+                  type="hidden"
+                  value={questionShuffleSeed}
+                />
+              ) : null}
+
               {question.type === "SINGLE_CHOICE" ? (
                 <div className="mt-3 flex flex-col gap-2">
-                  {question.options.map((option) => (
+                  {displayedOptions.map((option) => (
                     <label className="test-option" key={option.id}>
                       <input
                         defaultChecked={selectedValues.has(option.id)}
@@ -435,7 +722,7 @@ export function TestForm({
 
               {question.type === "MULTIPLE_CHOICE" ? (
                 <div className="mt-3 flex flex-col gap-2">
-                  {question.options.map((option) => (
+                  {displayedOptions.map((option) => (
                     <label className="test-option" key={option.id}>
                       <input
                         defaultChecked={selectedValues.has(option.id)}
@@ -451,9 +738,10 @@ export function TestForm({
 
               {question.type === "SORT_STEPS" ? (
                 <SortStepsFields
+                  key={`${question.id}-${storedAnswer ? "answered" : "editing"}-${validationRevision}`}
                   model={sortModel!}
                   questionId={question.id}
-                  storedAnswer={storedAnswer}
+                  answerValue={answerValue}
                 />
               ) : null}
 
@@ -466,7 +754,7 @@ export function TestForm({
                   </span>
                   <textarea
                     className="test-textarea"
-                    defaultValue={storedAnswerText(storedAnswer)}
+                    defaultValue={storedAnswerText(answerValue)}
                     name={`question_${question.id}`}
                     placeholder={promptErrorPlaceholder}
                   />
@@ -478,7 +766,7 @@ export function TestForm({
                   Ответ
                   <input
                     className="test-input"
-                    defaultValue={storedAnswerText(storedAnswer)}
+                    defaultValue={storedAnswerText(answerValue)}
                     name={`question_${question.id}`}
                     placeholder={fillBlankPlaceholder}
                   />
@@ -491,22 +779,38 @@ export function TestForm({
                 </p>
               ) : null}
 
-              {isAnswered && !storedAnswer?.isCorrect ? (
-                <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                  Пока не зачтено. Можно исправить ответ и попробовать ещё раз.
-                </p>
-              ) : null}
-
-              {isAnswered && question.explanation ? (
-                <p className="mt-3 rounded-lg bg-[var(--surface-muted)] px-3 py-2 text-sm leading-6 text-[var(--muted)]">
-                  {question.explanation}
-                </p>
+              {isAnswered && storedAnswer ? (
+                <QuestionReview
+                  answer={storedAnswer}
+                  lessonSlug={lessonSlug}
+                  question={question}
+                  sortModel={sortModel}
+                />
               ) : null}
             </fieldset>
           );
         })}
 
-        <SubmitButton isPending={isPending} />
+        {activeAttempt ? (
+          <div className="test-retry-panel">
+            <div>
+              <p className="font-bold">Хотите пройти тест ещё раз?</p>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                Новая попытка будет пустой. Этот результат останется в истории.
+              </p>
+            </div>
+            <button
+              className="test-submit-button"
+              onClick={resetForm}
+              type="button"
+            >
+              <RotateCcw aria-hidden="true" size={16} />
+              Пройти тест заново
+            </button>
+          </div>
+        ) : (
+          <SubmitButton isPending={isPending} />
+        )}
       </form>
     </>
   );

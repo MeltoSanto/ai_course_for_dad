@@ -11,6 +11,51 @@ export type SortQuestionModel = {
   variants: SortQuestionVariant[];
 };
 
+function seedHash(value: string) {
+  let hash = 2166136261;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function seededRandom(seed: string) {
+  let state = seedHash(seed) || 1;
+
+  return () => {
+    state += 0x6d2b79f5;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export function shuffleBySeed<T>(values: readonly T[], seed: string) {
+  const result = [...values];
+
+  if (result.length < 2 || !seed) {
+    return result;
+  }
+
+  const random = seededRandom(seed);
+
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const targetIndex = Math.floor(random() * (index + 1));
+    [result[index], result[targetIndex]] = [result[targetIndex], result[index]];
+  }
+
+  if (result.every((item, index) => item === values[index])) {
+    result.push(result.shift()!);
+  }
+
+  return result;
+}
+
 function cleanStep(value: string) {
   return value.replace(/^\s*\d+[.)]\s+/, "").trim();
 }
@@ -105,12 +150,16 @@ function generatedVariants(correctSteps: string[]) {
 export function buildSortQuestionModel({
   correctOrder,
   prompt,
+  shuffleSeed,
 }: {
   correctOrder: string | null;
   prompt: string;
+  shuffleSeed?: string;
 }): SortQuestionModel {
   const parsedVariants = inlineVariants(prompt);
   const correctSteps = parseSortOrder(correctOrder);
+
+  let model: SortQuestionModel;
 
   if (parsedVariants) {
     const variantKeys = new Set(parsedVariants.variants.map(({ key }) => key));
@@ -118,18 +167,49 @@ export function buildSortQuestionModel({
       .map((step) => step.toUpperCase())
       .filter((key) => variantKeys.has(key));
 
-    return {
+    model = {
       correctKeys,
       instruction: parsedVariants.instruction,
       variants: parsedVariants.variants,
     };
+  } else {
+    const generated = generatedVariants(correctSteps);
+
+    model = {
+      ...generated,
+      instruction:
+        prompt.trim() || "Расположите варианты в правильном порядке.",
+    };
   }
 
-  const generated = generatedVariants(correctSteps);
+  if (!shuffleSeed || model.variants.length < 2) {
+    return model;
+  }
+
+  let shuffled = shuffleBySeed(model.variants, shuffleSeed);
+  if (
+    shuffled.length === model.correctKeys.length &&
+    shuffled.every(
+      (variant, index) => variant.key === model.correctKeys[index],
+    )
+  ) {
+    shuffled = [...shuffled.slice(1), shuffled[0]];
+  }
+
+  const newKeys = shuffled.map((_, index) => SORT_LETTERS[index]);
+  const keyMap = new Map(
+    shuffled.map((variant, index) => [variant.key, newKeys[index]]),
+  );
 
   return {
-    ...generated,
-    instruction: prompt.trim() || "Расположите варианты в правильном порядке.",
+    correctKeys: model.correctKeys
+      .map((key) => keyMap.get(key) ?? "")
+      .filter(Boolean),
+    instruction: model.instruction,
+    variants: shuffled.map((variant, index) => ({
+      key: newKeys[index],
+      text: variant.text,
+    })),
   };
 }
 

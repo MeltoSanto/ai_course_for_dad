@@ -11,6 +11,8 @@ type SessionPayload = {
   userId: string;
   role: UserRole;
   expiresAt: string;
+  accessSessionId?: string;
+  sessionVersion?: number;
 };
 
 export type CurrentUser = {
@@ -72,7 +74,10 @@ function decodeSession(value: string | undefined): SessionPayload | null {
   }
 }
 
-export async function createSession(user: { id: string; role: UserRole }) {
+export async function createSession(
+  user: { id: string; role: UserRole; sessionVersion: number },
+  accessSessionId?: string,
+) {
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
   const cookieStore = await cookies();
 
@@ -82,6 +87,8 @@ export async function createSession(user: { id: string; role: UserRole }) {
       userId: user.id,
       role: user.role,
       expiresAt: expiresAt.toISOString(),
+      accessSessionId,
+      sessionVersion: user.sessionVersion,
     }),
     {
       httpOnly: true,
@@ -94,6 +101,22 @@ export async function createSession(user: { id: string; role: UserRole }) {
 }
 
 export async function deleteSession() {
+  const session = await getSession();
+
+  if (session?.accessSessionId) {
+    const now = new Date();
+    await db.userAccessSession.updateMany({
+      where: {
+        id: session.accessSessionId,
+        userId: session.userId,
+      },
+      data: {
+        lastActiveAt: now,
+        signedOutAt: now,
+      },
+    });
+  }
+
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE);
 }
@@ -117,10 +140,21 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       username: true,
       displayName: true,
       role: true,
+      isActive: true,
+      sessionVersion: true,
     },
   });
 
-  return user;
+  if (!user?.isActive || (session.sessionVersion ?? 1) !== user.sessionVersion) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    role: user.role,
+  };
 }
 
 export async function requireUser() {
